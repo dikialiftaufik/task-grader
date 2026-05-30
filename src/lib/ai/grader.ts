@@ -10,7 +10,7 @@ export interface GradingInput {
   sourceCode: string;
   modulAcuanText: string;
   totalPercobaan: number;
-  kehadiranStatus: 'hadir' | 'izin' | 'alpa';
+  kehadiranStatus: 'hadir' | 'izin' | 'sakit' | 'alpa';
   delayDays: number;
   modulNumber: number;
 }
@@ -34,7 +34,7 @@ export async function gradeSubmission(input: GradingInput): Promise<GradingResul
   const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
   const kehadiranPoin =
-    input.kehadiranStatus === 'hadir' ? 10 : input.kehadiranStatus === 'izin' ? 5 : 0;
+    input.kehadiranStatus === 'hadir' ? 10 : (input.kehadiranStatus === 'izin' || input.kehadiranStatus === 'sakit') ? 5 : 0;
 
   const ketepatanPoin = calcKetepatanPoin(input.delayDays);
 

@@ -21,12 +21,13 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts';
-import type { Grade, Attendance, Module } from '@/types';
+import type { Grade, Attendance, Module, Setting } from '@/types';
 
 export default function PraktikanDashboard() {
   const [grades, setGrades] = useState<(Grade & { module: Module })[]>([]);
   const [attendance, setAttendance] = useState<Attendance[]>([]);
   const [modules, setModules] = useState<Module[]>([]);
+  const [settings, setSettings] = useState<Setting | null>(null);
   const [userName, setUserName] = useState('');
   const [nim, setNim] = useState('');
   const [loading, setLoading] = useState(true);
@@ -41,6 +42,10 @@ export default function PraktikanDashboard() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
+
+      // Get settings
+      const { data: settingsData } = await supabase.from('settings').select('*').single();
+      if (settingsData) setSettings(settingsData as Setting);
 
       // Get user info
       const { data: userData } = await supabase
@@ -127,7 +132,7 @@ export default function PraktikanDashboard() {
           HALO, {userName.split(' ')[0]} 👋
         </h1>
         <p className="text-sm" style={{ color: 'var(--muted-text)' }}>
-          NIM: {nim} · Praktikum Pemrograman Berorientasi Objek
+          NIM: {nim} · {settings ? `${settings.semester} · ${settings.nama_mata_praktikum}` : 'Memuat...'}
         </p>
       </div>
 

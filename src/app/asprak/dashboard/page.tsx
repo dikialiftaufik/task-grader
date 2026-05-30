@@ -27,6 +27,7 @@ import {
   Cell,
   Legend,
 } from 'recharts';
+import type { Setting } from '@/types';
 
 interface DashboardStats {
   totalPraktikan: number;
@@ -50,6 +51,7 @@ const PIE_COLORS = ['#00C48C', '#FF3B3B', '#FFE500'];
 
 export default function AsprakDashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [settings, setSettings] = useState<Setting | null>(null);
   const [gradeDist, setGradeDist] = useState<{ name: string; count: number }[]>([]);
   const [submissionStatus, setSubmissionStatus] = useState<{ name: string; value: number }[]>([]);
   const [recentGrades, setRecentGrades] = useState<Array<{
@@ -71,6 +73,10 @@ export default function AsprakDashboard() {
     const supabase = createClient();
 
     try {
+      // Get settings
+      const { data: settingsData } = await supabase.from('settings').select('*').single();
+      if (settingsData) setSettings(settingsData as Setting);
+
       // Total praktikan
       const { count: totalPraktikan } = await supabase
         .from('users')
@@ -170,7 +176,7 @@ export default function AsprakDashboard() {
       <div className="mb-8">
         <h1 className="section-title section-title-asprak">DASHBOARD</h1>
         <p className="text-sm" style={{ color: 'var(--muted-text)' }}>
-          Semester Genap 2024/2025 · Praktikum Pemrograman Berorientasi Objek
+          {settings ? `${settings.semester} · ${settings.nama_mata_praktikum}` : 'Memuat...'}
         </p>
       </div>
 

@@ -1,6 +1,22 @@
 import type { Metadata } from 'next';
+import { Space_Grotesk, DM_Mono } from 'next/font/google';
 import { Toaster } from 'react-hot-toast';
 import './globals.css';
+
+const spaceGrotesk = Space_Grotesk({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-space-grotesk',
+  display: 'swap',
+});
+
+const dmMono = DM_Mono({
+  subsets: ['latin'],
+  weight: ['400', '500'],
+  style: ['normal', 'italic'],
+  variable: '--font-dm-mono',
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
   title: 'TaskGrader — Sistem Penilaian Praktikum Berbasis AI',
@@ -15,7 +31,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="id">
-      <body>
+      <body className={`${spaceGrotesk.variable} ${dmMono.variable}`}>
         {children}
         <Toaster
           position="top-right"

@@ -43,6 +43,7 @@ export default function Button({
 }: ButtonProps) {
   return (
     <button
+      suppressHydrationWarning
       className={cn(
         'neo-btn',
         variantStyles[variant],

@@ -43,20 +43,20 @@ export default function KehadiranPage() {
           {modules.map((m) => {
             const att = attendance.find((a) => a.module_id === m.id);
             const status = att?.status || 'alpa';
-            const colorMap = { hadir: 'var(--green)', izin: 'var(--blue)', alpa: 'var(--red)' };
-            const symbolMap = { hadir: '✓', izin: 'I', alpa: '✗' };
+            const colorMap = { hadir: 'var(--green)', izin: 'var(--blue)', sakit: 'var(--orange)', alpa: 'var(--red)' };
+            const symbolMap = { hadir: '✓', izin: 'I', sakit: 'S', alpa: '✗' };
 
             return (
               <div key={m.id} className="text-center">
                 <div
                   className="w-14 h-14 flex items-center justify-center text-lg font-bold text-white mx-auto"
                   style={{
-                    background: colorMap[status],
+                    background: colorMap[status as keyof typeof colorMap] || colorMap.alpa,
                     border: 'var(--border)',
                     borderRadius: '50%',
                   }}
                 >
-                  {symbolMap[status]}
+                  {symbolMap[status as keyof typeof symbolMap] || symbolMap.alpa}
                 </div>
                 <p className="text-xs mt-2" style={{ fontFamily: 'var(--font-display)' }}>
                   M{m.number}
@@ -119,12 +119,12 @@ export default function KehadiranPage() {
                     <span
                       className="neo-pill"
                       style={{
-                        background: status === 'hadir' ? 'var(--green)' : status === 'izin' ? 'var(--blue)' : 'var(--red)',
+                        background: status === 'hadir' ? 'var(--green)' : status === 'izin' ? 'var(--blue)' : status === 'sakit' ? 'var(--orange)' : 'var(--red)',
                         color: 'white',
                         borderColor: 'var(--dark)',
                       }}
                     >
-                      {status === 'hadir' ? 'HADIR' : status === 'izin' ? 'IZIN' : 'ALPA'}
+                      {status === 'hadir' ? 'HADIR' : status === 'izin' ? 'IZIN' : status === 'sakit' ? 'SAKIT' : 'ALPA'}
                     </span>
                   </td>
                   <td className="font-bold">{att?.point || 0}</td>

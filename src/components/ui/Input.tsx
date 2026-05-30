@@ -42,6 +42,7 @@ export default function Input({
         <input
           id={inputId}
           type={inputType}
+          suppressHydrationWarning
           className={cn(
             'neo-input',
             error && 'border-[var(--red)]',

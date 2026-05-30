@@ -37,9 +37,9 @@ export default function AbsensiPage() {
     setLoading(false);
   }
 
-  async function updateAttendance(userId: string, moduleId: number, newStatus: 'hadir' | 'izin' | 'alpa') {
+  async function updateAttendance(userId: string, moduleId: number, newStatus: 'hadir' | 'izin' | 'sakit' | 'alpa') {
     const supabase = createClient();
-    const poin = newStatus === 'hadir' ? 10 : newStatus === 'izin' ? 5 : 0;
+    const poin = newStatus === 'hadir' ? 10 : (newStatus === 'izin' || newStatus === 'sakit') ? 5 : 0;
 
     const { data: { user } } = await supabase.auth.getUser();
 
@@ -135,12 +135,13 @@ export default function AbsensiPage() {
                               updateAttendance(
                                 p.id,
                                 m.id,
-                                e.target.value as 'hadir' | 'izin' | 'alpa'
+                                e.target.value as 'hadir' | 'izin' | 'sakit' | 'alpa'
                               )
                             }
                           >
                             <option value="hadir">✓</option>
                             <option value="izin">I</option>
+                            <option value="sakit">S</option>
                             <option value="alpa">✗</option>
                           </select>
                         </td>
@@ -158,7 +159,7 @@ export default function AbsensiPage() {
       </Card>
 
       {/* Summary */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mt-6">
         <Card accentColor="var(--green)" padding="sm">
           <p className="text-xs uppercase font-semibold" style={{ fontFamily: 'var(--font-display)' }}>Total Hadir</p>
           <p className="text-3xl font-bold" style={{ fontFamily: 'var(--font-display)' }}>
@@ -169,6 +170,12 @@ export default function AbsensiPage() {
           <p className="text-xs uppercase font-semibold" style={{ fontFamily: 'var(--font-display)' }}>Izin</p>
           <p className="text-3xl font-bold" style={{ fontFamily: 'var(--font-display)' }}>
             {attendance.filter((a) => a.status === 'izin').length}
+          </p>
+        </Card>
+        <Card accentColor="var(--orange)" padding="sm">
+          <p className="text-xs uppercase font-semibold" style={{ fontFamily: 'var(--font-display)' }}>Sakit</p>
+          <p className="text-3xl font-bold" style={{ fontFamily: 'var(--font-display)' }}>
+            {attendance.filter((a) => a.status === 'sakit').length}
           </p>
         </Card>
         <Card accentColor="var(--red)" padding="sm">

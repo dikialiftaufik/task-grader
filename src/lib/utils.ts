@@ -86,22 +86,36 @@ export function getIndeksBgColor(indeks: IndeksHuruf | string | null): string {
 /**
  * Warna untuk status kehadiran
  */
-export function getAttendanceColor(status: AttendanceStatus): string {
+export function getAttendanceColor(status: string) {
   switch (status) {
-    case 'hadir': return '#00C48C';
-    case 'izin': return '#0057FF';
-    case 'alpa': return '#FF3B3B';
+    case 'hadir':
+      return 'var(--green)';
+    case 'izin':
+      return 'var(--blue)';
+    case 'sakit':
+      return 'var(--orange)';
+    case 'alpa':
+      return 'var(--red)';
+    default:
+      return 'var(--dark)';
   }
 }
 
 /**
  * Label untuk status kehadiran
  */
-export function getAttendanceLabel(status: AttendanceStatus): string {
+export function getAttendanceLabel(status: string) {
   switch (status) {
-    case 'hadir': return 'Hadir';
-    case 'izin': return 'Izin';
-    case 'alpa': return 'Alpa';
+    case 'hadir':
+      return 'Hadir';
+    case 'izin':
+      return 'Izin';
+    case 'sakit':
+      return 'Sakit';
+    case 'alpa':
+      return 'Alpa';
+    default:
+      return '-';
   }
 }
 

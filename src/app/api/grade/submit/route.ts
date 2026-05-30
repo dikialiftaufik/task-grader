@@ -31,7 +31,7 @@ export async function POST(request: Request) {
     const userId = formData.get('user_id') as string;
     const moduleId = parseInt(formData.get('module_id') as string);
     const delayDays = parseInt(formData.get('delay_days') as string) || 0;
-    const attendanceStatus = formData.get('attendance_status') as 'hadir' | 'izin' | 'alpa';
+    const attendanceStatus = formData.get('attendance_status') as 'hadir' | 'izin' | 'sakit' | 'alpa';
     const laporanPdf = formData.get('laporan_pdf') as File | null;
     const modulAcuan = formData.get('modul_acuan') as File | null;
 
@@ -122,7 +122,7 @@ export async function POST(request: Request) {
     );
 
     // 3. Update attendance
-    const attPoin = attendanceStatus === 'hadir' ? 10 : attendanceStatus === 'izin' ? 5 : 0;
+    const attPoin = attendanceStatus === 'hadir' ? 10 : (attendanceStatus === 'izin' || attendanceStatus === 'sakit') ? 5 : 0;
     await admin.from('attendance').upsert(
       {
         user_id: userId,

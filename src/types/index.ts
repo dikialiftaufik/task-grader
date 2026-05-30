@@ -5,7 +5,7 @@
 // ━━━━ Enums ━━━━
 
 export type UserRole = 'asprak' | 'praktikan';
-export type AttendanceStatus = 'hadir' | 'izin' | 'alpa';
+export type AttendanceStatus = 'hadir' | 'izin' | 'sakit' | 'alpa';
 export type SubmissionStatus = 'draft' | 'ai_reviewed' | 'final' | 'disputed';
 export type AIConfidence = 'high' | 'medium' | 'low';
 export type IndeksHuruf = 'A' | 'AB' | 'B' | 'BC' | 'C' | 'D' | 'E';
@@ -158,6 +158,17 @@ export interface Notification {
   is_read: boolean;
   metadata: Record<string, unknown> | null;
   created_at: string;
+}
+
+export interface Setting {
+  id: string;
+  nama_mata_praktikum: string;
+  semester: string;
+  program_studi: string;
+  bobot_kehadiran: number;
+  bobot_tugas_akhir: number;
+  bobot_laporan: number;
+  updated_at: string;
 }
 
 // ━━━━ Extended/Joined Types ━━━━
