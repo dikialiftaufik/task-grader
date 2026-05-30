@@ -9,8 +9,8 @@ const KOMPONEN = [
     max: 30,
     color: 'var(--blue)',
     items: [
-      { label: 'Kehadiran', max: 10, desc: 'Hadir: 10 | Izin: 5 | Alpa: 0' },
-      { label: 'Kelengkapan Percobaan', max: 20, desc: 'Formula: (dikerjakan/total) × 20' },
+      { label: 'Kehadiran', max: 10, desc: 'Hadir: 10 | Izin/Sakit: 5 | Alpa: 0' },
+      { label: 'Kelengkapan Percobaan', max: 20, desc: 'Rasio percobaan yang dikerjakan terhadap total percobaan × 20' },
     ],
   },
   {
@@ -19,9 +19,9 @@ const KOMPONEN = [
     max: 30,
     color: 'var(--yellow)',
     items: [
-      { label: 'Fungsionalitas Program', max: 15, desc: 'Kompilasi, fitur, validasi input' },
-      { label: 'Sintaks Wajib', max: 10, desc: 'Sesuai modul (Scanner, if-else, dll.)' },
-      { label: 'Kualitas Kode', max: 5, desc: 'Struktur, penamaan, output' },
+      { label: 'Fungsionalitas', max: 15, desc: 'Kompilasi, fitur utama, dan penanganan input' },
+      { label: 'Penerapan Konsep', max: 10, desc: 'Implementasi konsep OOP sesuai topik modul' },
+      { label: 'Kualitas Kode', max: 5, desc: 'Struktur, konvensi penamaan, dan format output' },
     ],
   },
   {
@@ -30,9 +30,9 @@ const KOMPONEN = [
     max: 40,
     color: 'var(--red)',
     items: [
-      { label: 'Kelengkapan Isi', max: 20, desc: 'Struktur bab, dasar teori, kesimpulan' },
-      { label: 'Kerapihan Penulisan', max: 12, desc: 'Font, spacing, gambar, istilah asing' },
-      { label: 'Ketepatan Pengumpulan', max: 8, desc: 'Tepat waktu: 8 | Terlambat: 8-(hari×0.57)' },
+      { label: 'Kelengkapan Isi', max: 20, desc: 'Struktur bab, dasar teori, dan kesimpulan' },
+      { label: 'Kerapihan Penulisan', max: 12, desc: 'Tipografi, format gambar, dan penggunaan istilah' },
+      { label: 'Ketepatan Pengumpulan', max: 8, desc: 'Tepat waktu: 8 | Terlambat: penalti progresif per hari' },
     ],
   },
 ];
@@ -40,9 +40,9 @@ const KOMPONEN = [
 export default function KriteriaPage() {
   return (
     <div>
-      <h1 className="section-title section-title-asprak">KRITERIA PENILAIAN</h1>
+      <h1 className="section-title section-title-asprak">RUBRIK PENILAIAN</h1>
       <p className="text-sm mb-6" style={{ color: 'var(--muted-text)' }}>
-        Transparansi penuh mengenai cara nilai dihitung
+        Transparansi penuh mengenai komponen dan bobot penilaian
       </p>
 
       {/* Info banner */}
@@ -50,8 +50,8 @@ export default function KriteriaPage() {
         className="p-4 mb-8 text-sm text-white"
         style={{ background: 'var(--blue)', border: 'var(--border)' }}
       >
-        Nilai dihitung berdasarkan 3 komponen utama dengan total maksimum 100 poin.
-        AI Gemini 2.0 Flash digunakan untuk evaluasi otomatis yang kemudian bisa di-review manual oleh asprak.
+        Penilaian dilakukan secara otomatis menggunakan AI, kemudian divalidasi manual oleh asprak untuk memastikan akurasi.
+        Total nilai maksimum adalah 100 poin dari 3 komponen utama.
       </div>
 
       {/* Komponen Cards */}

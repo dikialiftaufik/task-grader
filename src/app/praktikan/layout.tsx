@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import Sidebar from '@/components/ui/Sidebar';
+import Navbar from '@/components/ui/Navbar';
 import type { User } from '@/types';
 
 export default function PraktikanLayout({ children }: { children: React.ReactNode }) {
@@ -59,8 +60,9 @@ export default function PraktikanLayout({ children }: { children: React.ReactNod
 
   return (
     <div>
-      <Sidebar role="praktikan" userName={user?.full_name || 'Praktikan'} onLogout={handleLogout} />
-      <main className="main-content">{children}</main>
+      <Sidebar role="praktikan" userName={user?.full_name || 'Praktikan'} />
+      <Navbar role="praktikan" userName={user?.full_name || 'Praktikan'} onLogout={handleLogout} />
+      <main className="main-content main-content-with-navbar">{children}</main>
     </div>
   );
 }

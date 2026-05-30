@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import Sidebar from '@/components/ui/Sidebar';
+import Navbar from '@/components/ui/Navbar';
 import type { User } from '@/types';
 
 export default function AsprakLayout({ children }: { children: React.ReactNode }) {
@@ -59,8 +60,9 @@ export default function AsprakLayout({ children }: { children: React.ReactNode }
 
   return (
     <div>
-      <Sidebar role="asprak" userName={user?.full_name || 'Asprak'} onLogout={handleLogout} />
-      <main className="main-content">{children}</main>
+      <Sidebar role="asprak" userName={user?.full_name || 'Asprak'} />
+      <Navbar role="asprak" userName={user?.full_name || 'Asprak'} onLogout={handleLogout} />
+      <main className="main-content main-content-with-navbar">{children}</main>
     </div>
   );
 }

@@ -109,13 +109,13 @@ export default function LoginPage() {
             className="mt-6 text-base max-w-md"
             style={{ color: 'var(--muted-text)', fontFamily: 'var(--font-body)' }}
           >
-            Sistem Penilaian Praktikum Berbasis AI
+            Automated Practicum Grading System
           </p>
           <p
             className="mt-2 text-sm max-w-md"
             style={{ color: 'var(--muted-text)', fontFamily: 'var(--font-body)' }}
           >
-            Praktikum Pemrograman Berorientasi Objek · D3 Sistem Informasi
+            Powered by AI · Built for Accuracy
           </p>
         </div>
 
@@ -173,7 +173,7 @@ export default function LoginPage() {
               className="text-xs mb-8"
               style={{ color: 'var(--muted-text)' }}
             >
-              Gunakan akun yang telah didaftarkan oleh asprak
+              Gunakan akun yang telah didaftarkan oleh asprak Anda
             </p>
 
             <form onSubmit={handleLogin} className="space-y-5">
@@ -219,7 +219,7 @@ export default function LoginPage() {
             >
               <Info size={16} className="flex-shrink-0 mt-0.5" style={{ color: 'var(--blue)' }} />
               <span style={{ color: 'var(--muted-text)' }}>
-                Hubungi asprak jika belum memiliki akun. Password awal adalah NIM Anda.
+                Hubungi asprak Anda jika belum memiliki akun. Password awal adalah NIM Anda.
               </span>
             </div>
           </div>
