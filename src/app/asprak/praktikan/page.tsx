@@ -5,6 +5,7 @@ import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Skeleton from '@/components/ui/Skeleton';
+import Dialog, { useDialog } from '@/components/ui/Dialog';
 import { Users, Trash2, UserPlus, Search } from 'lucide-react';
 import toast from 'react-hot-toast';
 import type { User } from '@/types';
@@ -20,6 +21,8 @@ export default function PraktikanPage() {
   const [newUsername, setNewUsername] = useState('');
   const [newNim, setNewNim] = useState('');
   const [showForm, setShowForm] = useState(false);
+
+  const { dialogState, showDialog, closeDialog } = useDialog();
 
   useEffect(() => {
     loadPraktikans();
@@ -69,11 +72,17 @@ export default function PraktikanPage() {
     setSaving(false);
   }
 
-  async function handleDeletePraktikan(id: string, name: string) {
-    if (!confirm(`Yakin ingin menghapus akun ${name}?\nSemua data nilai dan absensinya akan terhapus permanen.`)) {
-      return;
-    }
+  function confirmDelete(id: string, name: string) {
+    showDialog({
+      title: 'Hapus Praktikan?',
+      message: `Yakin ingin menghapus akun ${name}? Semua data nilai dan absensinya akan terhapus permanen.`,
+      variant: 'error',
+      confirmText: 'Ya, Hapus',
+      onConfirm: () => handleDeletePraktikan(id, name),
+    });
+  }
 
+  async function handleDeletePraktikan(id: string, name: string) {
     try {
       const res = await fetch(`/api/admin/users?id=${id}`, { method: 'DELETE' });
       const json = await res.json();
@@ -86,6 +95,8 @@ export default function PraktikanPage() {
       }
     } catch {
       toast.error('Terjadi kesalahan server');
+    } finally {
+      closeDialog();
     }
   }
 
@@ -192,7 +203,7 @@ export default function PraktikanPage() {
                     </td>
                     <td>
                       <button
-                        onClick={() => handleDeletePraktikan(p.id, p.full_name)}
+                        onClick={() => confirmDelete(p.id, p.full_name)}
                         className="p-2 bg-[var(--red)] text-white border-2 border-[var(--dark)] hover:brightness-90 transition-all cursor-pointer"
                         title="Hapus Akun"
                       >
@@ -214,6 +225,8 @@ export default function PraktikanPage() {
           </table>
         </div>
       </Card>
+
+      <Dialog {...dialogState} onClose={closeDialog} />
     </div>
   );
 }

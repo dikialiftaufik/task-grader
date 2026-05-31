@@ -24,8 +24,8 @@ RUBRIK PENILAIAN LENGKAP:
 - Fitur Keluar berfungsi: 1 poin
 - Validasi input + pesan error: 2 poin
 
-SAFEGUARD KOMPILASI: Jika gagal compile HANYA karena typo minor, perbaiki di memori, berikan penalti -3 kompilasi, lanjutkan evaluasi.
-Jika logika hancur total → 0 untuk seluruh fungsionalitas.
+SAFEGUARD KOMPILASI: Toleransi penuh terhadap typo minor atau KESALAHAN DARI KODE MODUL ACUAN. Jika kode gagal compile karena pembuat modul ceroboh (misal: salah ketik di panduan, penamaan ambigu), PERBAIKI di memori tanpa memberikan penalti kompilasi. Praktikan tidak boleh dirugikan oleh kesalahan modul. Lanjutkan evaluasi fungsionalitas dengan asumsi kode sudah diperbaiki.
+Jika logika dasar hancur total karena murni kesalahan praktikan → 0 untuk seluruh fungsionalitas.
 
 2.2 Sintaks Wajib (max 10 poin) — SESUAIKAN DENGAN MODUL dari konten modul acuan.
 

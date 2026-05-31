@@ -257,6 +257,115 @@ h1, h2, h3, h4, h5, h6,
   background: rgba(255, 229, 0, 0.1);
 }
 
+/* ━━━━ Dialog / Modal ━━━━ */
+.dialog-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(17, 17, 17, 0.6);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: dialog-fade-in 0.15s ease;
+}
+
+@keyframes dialog-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes dialog-slide-up {
+  from { opacity: 0; transform: translateY(12px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.dialog-box {
+  position: relative;
+  background: var(--white);
+  border: 3px solid var(--dark);
+  box-shadow: 8px 8px 0px var(--dark);
+  padding: 32px;
+  max-width: 440px;
+  width: 100%;
+  text-align: center;
+  animation: dialog-slide-up 0.2s ease;
+}
+
+.dialog-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--dark);
+  background: var(--white);
+  cursor: pointer;
+  transition: all 0.1s;
+}
+
+.dialog-close:hover {
+  background: var(--muted);
+}
+
+.dialog-icon {
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+  border: 3px solid var(--dark);
+}
+
+.dialog-title {
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.dialog-message {
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  color: var(--muted-text);
+  margin-bottom: 24px;
+  line-height: 1.5;
+}
+
+.dialog-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+/* ━━━━ Submission Modal ━━━━ */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(17, 17, 17, 0.6);
+  z-index: 90;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 40px 16px;
+  overflow-y: auto;
+  animation: dialog-fade-in 0.15s ease;
+}
+
+.modal-box {
+  background: var(--white);
+  border: 3px solid var(--dark);
+  box-shadow: 8px 8px 0px var(--dark);
+  padding: 32px;
+  max-width: 640px;
+  width: 100%;
+  animation: dialog-slide-up 0.2s ease;
+}
+
 .main-content {
   margin-left: var(--sidebar-width);
   padding: 32px;
@@ -388,6 +497,49 @@ h1, h2, h3, h4, h5, h6,
 .skeleton {
   background: var(--muted);
   animation: skeleton-pulse 1.5s ease-in-out infinite;
+}
+
+/* ━━━━ Dropzone ━━━━ */
+.neo-dropzone {
+  border: 2px dashed var(--dark);
+  background: var(--white);
+  padding: 24px 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: var(--font-body);
+}
+
+.neo-dropzone:hover {
+  background: var(--muted);
+}
+
+.neo-dropzone-active {
+  background: rgba(0, 196, 140, 0.1);
+  border-color: var(--green);
+}
+
+/* ━━━━ Pills & Badges ━━━━ */
+/* (omitted original pill css if not in range, but let's just append keyframes before responsive media query) */
+
+/* ━━━━ Login Page Animations ━━━━ */
+@keyframes float {
+  0%, 100% { transform: translateY(0) rotate(0); }
+  50% { transform: translateY(-15px) rotate(5deg); }
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 /* ━━━━ Responsive ━━━━ */
