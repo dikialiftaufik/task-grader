@@ -1,4 +1,3 @@
-import pdf from 'pdf-parse';
 import JSZip from 'jszip';
 
 /**
@@ -7,8 +6,11 @@ import JSZip from 'jszip';
  */
 export async function extractPdfText(buffer: Buffer): Promise<string> {
   try {
-    const data = await pdf(buffer);
-    return data.text || '';
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { PDFParse } = require('pdf-parse');
+    const parser = new PDFParse({ data: new Uint8Array(buffer) });
+    const textResult = await parser.getText();
+    return textResult.text || '';
   } catch (error) {
     console.error('PDF extraction error:', error);
     return '';

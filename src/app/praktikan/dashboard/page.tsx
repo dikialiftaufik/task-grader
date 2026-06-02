@@ -79,6 +79,7 @@ export default function PraktikanDashboard() {
           gradesData.map((g: Record<string, unknown>) => ({
             ...g,
             module: g.modules,
+            indeks: calcIndeks(g.nilai_final as number),
           })) as (Grade & { module: Module })[]
         );
       }

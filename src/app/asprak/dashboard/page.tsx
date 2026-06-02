@@ -27,6 +27,7 @@ import {
   Cell,
   Legend,
 } from 'recharts';
+import { calcIndeks } from '@/lib/scoring/rubric';
 import type { Setting } from '@/types';
 
 interface DashboardStats {
@@ -127,7 +128,7 @@ export default function AsprakDashboard() {
       // Recent grades with user info
       const { data: recentData } = await supabase
         .from('grades')
-        .select('id, nilai_final, indeks, ai_confidence, status, user_id, users!inner(full_name, nim)')
+        .select('id, nilai_final, indeks, ai_confidence, status, user_id, users!grades_user_id_fkey!inner(full_name, nim)')
         .order('updated_at', { ascending: false })
         .limit(5);
 
@@ -135,12 +136,13 @@ export default function AsprakDashboard() {
         setRecentGrades(
           recentData.map((g: Record<string, unknown>) => {
             const user = g.users as Record<string, unknown>;
+            const nilai_final = g.nilai_final as number || 0;
             return {
               id: g.id as string,
               full_name: user?.full_name as string || '',
               nim: user?.nim as string || '',
-              nilai_final: g.nilai_final as number || 0,
-              indeks: g.indeks as string || '-',
+              nilai_final: nilai_final,
+              indeks: calcIndeks(nilai_final),
               ai_confidence: g.ai_confidence as string || '-',
               status: g.status as string || 'draft',
             };
@@ -330,7 +332,6 @@ export default function AsprakDashboard() {
                   <th>Indeks</th>
                   <th>Confidence</th>
                   <th>Status</th>
-                  <th>Aksi</th>
                 </tr>
               </thead>
               <tbody>
@@ -349,16 +350,6 @@ export default function AsprakDashboard() {
                     </td>
                     <td>
                       <Badge variant="status" value={grade.status} />
-                    </td>
-                    <td>
-                      <div className="flex gap-2">
-                        <button className="p-1 hover:bg-[var(--muted)]">
-                          <Eye size={16} />
-                        </button>
-                        <button className="p-1 hover:bg-[var(--muted)]">
-                          <Pencil size={16} />
-                        </button>
-                      </div>
                     </td>
                   </tr>
                 ))}

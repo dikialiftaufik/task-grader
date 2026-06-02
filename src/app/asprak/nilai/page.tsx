@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
@@ -8,21 +8,16 @@ import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Skeleton from '@/components/ui/Skeleton';
 import Dialog, { useDialog } from '@/components/ui/Dialog';
-import { Upload, Search, Download, X, Brain, FileText, Code, BookOpen, UploadCloud, Trash2 } from 'lucide-react';
+import { Upload, Search, Download, X, Brain, FileText, Code, BookOpen, UploadCloud, Trash2, Eye, Send, CheckCircle2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useDropzone } from 'react-dropzone';
-import type { Module, User } from '@/types';
+import { calcIndeks } from '@/lib/scoring/rubric';
+import type { Module, User, Grade } from '@/types';
 
-interface GradeRow {
-  id: string;
-  user_id: string;
+interface GradeRow extends Grade {
   full_name: string;
   nim: string;
-  nilai_final: number;
-  indeks: string;
-  ai_confidence: string;
-  status: string;
-  module_id: number;
+  module_number: number;
 }
 
 export default function KelolaNilaiPage() {
@@ -35,6 +30,7 @@ export default function KelolaNilaiPage() {
 
   // Submission modal
   const [showModal, setShowModal] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState<any>(null);
   const [submitting, setSubmitting] = useState(false);
   const [formUserId, setFormUserId] = useState('');
   const [formModuleId, setFormModuleId] = useState('');
@@ -43,6 +39,8 @@ export default function KelolaNilaiPage() {
   // Dynamic Attendance
   const [fetchedAttendance, setFetchedAttendance] = useState<'hadir' | 'izin' | 'sakit' | 'alpa' | null>(null);
   const [loadingAttendance, setLoadingAttendance] = useState(false);
+
+  const [publishing, setPublishing] = useState(false);
 
   // Files
   const [formLaporan, setFormLaporan] = useState<File | null>(null);
@@ -101,29 +99,49 @@ export default function KelolaNilaiPage() {
 
     const { data: gradesData } = await supabase
       .from('grades')
-      .select('id, user_id, nilai_final, indeks, ai_confidence, status, module_id, users!inner(full_name, nim)')
+      .select('*, users!grades_user_id_fkey!inner(full_name, nim), modules!inner(number)')
       .order('module_id');
 
     if (gradesData) {
       setGrades(
         gradesData.map((g: Record<string, unknown>) => {
           const user = g.users as Record<string, unknown>;
+          const module = g.modules as Record<string, unknown>;
           return {
-            id: g.id as string,
-            user_id: g.user_id as string,
+            ...g,
             full_name: user?.full_name as string || '',
             nim: user?.nim as string || '',
-            nilai_final: g.nilai_final as number || 0,
-            indeks: g.indeks as string || '-',
-            ai_confidence: g.ai_confidence as string || '-',
-            status: g.status as string || 'draft',
-            module_id: g.module_id as number,
-          };
+            module_number: module?.number as number || g.module_id,
+            indeks: calcIndeks(g.nilai_final as number),
+          } as GradeRow;
         })
       );
     }
 
     setLoading(false);
+  }
+
+  async function handlePublish(gradeIds: string[]) {
+    if (gradeIds.length === 0) return;
+    
+    setPublishing(true);
+    try {
+      const res = await fetch('/api/grade/publish', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ grade_ids: gradeIds }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(`${data.count} nilai berhasil dipublish`);
+        loadData();
+      } else {
+        toast.error(data.error || 'Gagal mempublish nilai');
+      }
+    } catch {
+      toast.error('Koneksi gagal');
+    }
+    setPublishing(false);
   }
 
   async function handleSubmit() {
@@ -256,20 +274,32 @@ export default function KelolaNilaiPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
         <div>
           <h1 className="section-title section-title-asprak">PENILAIAN AI</h1>
           <p className="text-sm" style={{ color: 'var(--muted-text)' }}>
             Upload submission untuk dinilai secara otomatis
           </p>
         </div>
-        <Button variant="primary-asprak" icon={<Upload size={16} />} onClick={() => setShowModal(true)}>
-          Input Submission
-        </Button>
+        <div className="flex gap-3">
+          {grades.some(g => g.status === 'ai_reviewed') && (
+            <Button 
+              variant="secondary" 
+              icon={<Send size={16} />} 
+              onClick={() => handlePublish(grades.filter(g => g.status === 'ai_reviewed').map(g => g.id))}
+              loading={publishing}
+            >
+              Publish Semua
+            </Button>
+          )}
+          <Button variant="primary-asprak" icon={<Upload size={16} />} onClick={() => setShowModal(true)}>
+            Input Submission
+          </Button>
+        </div>
       </div>
 
       {/* Filter bar */}
-      <Card className="mb-6" padding="sm" shadow={false} style={{ background: 'var(--muted)' } as React.CSSProperties}>
+      <Card className="mb-6 bg-[var(--muted)]" padding="sm" shadow={false}>
         <div className="flex flex-wrap gap-4 items-center">
           <select
             className="neo-input w-auto"
@@ -310,6 +340,7 @@ export default function KelolaNilaiPage() {
                 <th>Indeks</th>
                 <th>Confidence</th>
                 <th>Status</th>
+                <th>Aksi</th>
               </tr>
             </thead>
             <tbody>
@@ -318,13 +349,33 @@ export default function KelolaNilaiPage() {
                   <tr key={g.id}>
                     <td className="font-mono text-sm">{g.nim}</td>
                     <td>{g.full_name}</td>
-                    <td>{g.module_id}</td>
+                    <td className="font-bold">Modul {g.module_number}</td>
                     <td className="font-bold" style={{ fontFamily: 'var(--font-display)' }}>
                       {g.nilai_final}
                     </td>
                     <td><Badge variant="indeks" value={g.indeks} /></td>
                     <td><Badge variant="confidence" value={g.ai_confidence?.toUpperCase() || '-'} /></td>
                     <td><Badge variant="status" value={g.status} /></td>
+                    <td>
+                      <div className="flex gap-2">
+                        <button 
+                          className="p-1.5 hover:bg-[var(--muted)] border-2 border-transparent hover:border-[var(--dark)] transition-all rounded"
+                          title="Lihat Detail"
+                          onClick={() => setShowDetailModal(g)}
+                        >
+                          <Eye size={16} />
+                        </button>
+                        {g.status === 'ai_reviewed' && (
+                          <button 
+                            className="p-1.5 hover:bg-[var(--green)] hover:text-white border-2 border-transparent hover:border-[var(--dark)] transition-all rounded text-[var(--green)]"
+                            title="Publish Nilai"
+                            onClick={() => handlePublish([g.id])}
+                          >
+                            <Send size={16} />
+                          </button>
+                        )}
+                      </div>
+                    </td>
                   </tr>
                 ))
               ) : (
@@ -559,6 +610,233 @@ export default function KelolaNilaiPage() {
 
       {/* Result Dialog */}
       <Dialog {...dialogState} onClose={closeDialog} />
+
+      {/* ━━━━ Detail Modal ━━━━ */}
+      {showDetailModal && (
+        <div className="modal-overlay" onClick={() => setShowDetailModal(null)}>
+          <div className="modal-box" style={{ maxWidth: '800px', width: '95%', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }} onClick={(e) => e.stopPropagation()}>
+            {/* Header */}
+            <div className="flex items-center justify-between mb-4 border-b-2 border-[var(--dark)] pb-4 flex-shrink-0">
+              <div>
+                <h2 className="text-xl font-bold uppercase" style={{ fontFamily: 'var(--font-display)' }}>
+                  Detail Penilaian AI
+                </h2>
+                <p className="text-sm">
+                  <span className="font-mono font-bold mr-2">{showDetailModal.nim}</span>
+                  {showDetailModal.full_name} — Modul {showDetailModal.module_number}
+                </p>
+              </div>
+              <button onClick={() => setShowDetailModal(null)} className="p-2 hover:bg-[var(--red)] hover:text-white border-2 border-transparent hover:border-[var(--dark)] transition-colors">
+                <X size={24} />
+              </button>
+            </div>
+
+            {/* Content scrollable */}
+            <div className="overflow-y-auto pr-2 pb-4 space-y-6">
+              
+              {/* Top Stats */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="p-4 bg-[var(--muted)] border-2 border-[var(--dark)]">
+                  <p className="text-xs font-bold uppercase mb-1">Total Nilai</p>
+                  <p className="text-3xl font-bold font-display">{showDetailModal.nilai_final}</p>
+                </div>
+                <div className="p-4 bg-[var(--muted)] border-2 border-[var(--dark)]">
+                  <p className="text-xs font-bold uppercase mb-1">Indeks</p>
+                  <p className="text-3xl font-bold font-display text-[var(--blue)]">{showDetailModal.indeks || '-'}</p>
+                </div>
+                <div className="p-4 bg-[var(--muted)] border-2 border-[var(--dark)]">
+                  <p className="text-xs font-bold uppercase mb-1">Confidence</p>
+                  <Badge variant="confidence" value={showDetailModal.ai_confidence?.toUpperCase() || '-'} className="mt-1" />
+                </div>
+                <div className="p-4 bg-[var(--muted)] border-2 border-[var(--dark)]">
+                  <p className="text-xs font-bold uppercase mb-1">Status</p>
+                  <Badge variant="status" value={showDetailModal.status} className="mt-1" />
+                </div>
+              </div>
+
+              {/* Rincian Komponen Detail Baru */}
+              <div className="space-y-4">
+                <h3 className="text-sm font-bold uppercase border-b-2 border-[var(--dark)] pb-2" style={{ fontFamily: 'var(--font-display)' }}>Rincian Komponen Penilaian</h3>
+                
+                {/* KOMPONEN 1 */}
+                <details className="group border-2 border-[var(--dark)] rounded-none bg-white">
+                  <summary className="font-bold p-3 bg-[var(--muted)] cursor-pointer select-none flex justify-between items-center group-open:border-b-2 group-open:border-[var(--dark)]">
+                    <span>1. Kehadiran & Pelaksanaan Praktikum (30%)</span>
+                    <span className="text-lg font-display">{showDetailModal.komponen1_total} / 30</span>
+                  </summary>
+                  <div className="p-4 space-y-3 text-sm">
+                    <div className="flex justify-between items-start border-b border-dashed pb-2">
+                      <div>
+                        <span className="font-bold block">1.1 Kehadiran</span>
+                        <span className="text-xs text-[var(--muted-text)]">Hadir (10) | Izin/Sakit (5) | Alpa (0)</span>
+                      </div>
+                      <span className="font-mono font-bold">{showDetailModal.kehadiran_poin} / 10</span>
+                    </div>
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <span className="font-bold block">1.2 Kelengkapan Pelaksanaan Percobaan</span>
+                        <span className="text-xs text-[var(--muted-text)]">Jumlah sub-bab percobaan yang dikerjakan</span>
+                      </div>
+                      <span className="font-mono font-bold">{showDetailModal.percobaan_poin} / 20</span>
+                    </div>
+                  </div>
+                </details>
+
+                {/* KOMPONEN 2 */}
+                <details className="group border-2 border-[var(--dark)] rounded-none bg-white">
+                  <summary className="font-bold p-3 bg-[var(--muted)] cursor-pointer select-none flex justify-between items-center group-open:border-b-2 group-open:border-[var(--dark)]">
+                    <span>2. Tugas Akhir (30%)</span>
+                    <span className="text-lg font-display">{showDetailModal.komponen2_total} / 30</span>
+                  </summary>
+                  <div className="p-4 space-y-4 text-sm">
+                    <div className="border-b border-dashed pb-3">
+                      <div className="flex justify-between items-start mb-2">
+                        <span className="font-bold">2.1 Fungsionalitas Program</span>
+                        <span className="font-mono font-bold">{showDetailModal.fungsionalitas_poin} / 15</span>
+                      </div>
+                      <p className="text-xs text-gray-700">Kesesuaian logika dan fitur program dengan kriteria target pada modul terkait (seperti proses kalkulasi, menu, validasi input, dll).</p>
+                      {showDetailModal.fungsionalitas_poin < 15 && <p className="text-xs text-[var(--red)] mt-2 font-italic">* Lihat rincian penalti di bawah</p>}
+                    </div>
+                    <div className="border-b border-dashed pb-3">
+                      <div className="flex justify-between items-start mb-2">
+                        <span className="font-bold">2.2 Penerapan Sintaks Wajib</span>
+                        <span className="font-mono font-bold">{showDetailModal.sintaks_poin} / 10</span>
+                      </div>
+                      <p className="text-xs text-gray-700">Penerapan sintaks disesuaikan dengan topik modul terkait.</p>
+                      {showDetailModal.sintaks_poin < 10 && <p className="text-xs text-[var(--red)] mt-2 font-italic">* Lihat rincian penalti di bawah</p>}
+                    </div>
+                    <div>
+                      <div className="flex justify-between items-start mb-2">
+                        <span className="font-bold">2.3 Kualitas Kode</span>
+                        <span className="font-mono font-bold">{showDetailModal.kualitas_poin} / 5</span>
+                      </div>
+                      <ul className="list-disc pl-5 text-xs space-y-1 text-gray-700">
+                        <li>Struktur rapi & indentasi (2)</li>
+                        <li>Penamaan variabel bermakna (1)</li>
+                        <li>Output sesuai format (2)</li>
+                      </ul>
+                      {showDetailModal.kualitas_poin < 5 && <p className="text-xs text-[var(--red)] mt-2 font-italic">* Lihat rincian penalti di bawah</p>}
+                    </div>
+                  </div>
+                </details>
+
+                {/* KOMPONEN 3 */}
+                <details className="group border-2 border-[var(--dark)] rounded-none bg-white">
+                  <summary className="font-bold p-3 bg-[var(--muted)] cursor-pointer select-none flex justify-between items-center group-open:border-b-2 group-open:border-[var(--dark)]">
+                    <span>3. Buku Laporan Praktikum (40%)</span>
+                    <span className="text-lg font-display">{showDetailModal.komponen3_total} / 40</span>
+                  </summary>
+                  <div className="p-4 space-y-4 text-sm">
+                    {/* 3.1 */}
+                    <details className="group/sub mb-2">
+                      <summary className="font-bold cursor-pointer select-none flex justify-between border-b pb-1">
+                        <span>3.1 Kelengkapan Isi</span>
+                        <span className="font-mono">{showDetailModal.kelengkapan_poin} / 20</span>
+                      </summary>
+                      <div className="pl-4 mt-2 space-y-2 text-xs text-gray-800">
+                        <p>Struktur Bab Wajib: Pendahuluan, Tujuan, Alat, TA.</p>
+                        <p>Dasar Teori: Referensi IEEE, dilarang copas Web/AI, minimal 3 baris.</p>
+                        <p>Percobaan & Pembahasan: Paragraf pengantar, kalimat kerja aktif.</p>
+                        <p>Kesimpulan: Analisis mendalam, tidak sekedar rangkuman.</p>
+                        <p>Daftar Referensi: Sinkron dengan sitasi teks.</p>
+                        {showDetailModal.kelengkapan_poin < 20 && <p className="text-[var(--red)] mt-2 font-italic">* Lihat rincian penalti di bawah</p>}
+                      </div>
+                    </details>
+                    {/* 3.2 */}
+                    <details className="group/sub mb-2">
+                      <summary className="font-bold cursor-pointer select-none flex justify-between border-b pb-1">
+                        <span>3.2 Kerapihan Penulisan</span>
+                        <span className="font-mono">{showDetailModal.kerapihan_poin} / 12</span>
+                      </summary>
+                      <div className="pl-4 mt-2 space-y-2 text-xs text-gray-800">
+                        <p>Font & Spacing: Times New Roman 12, Spasi 1.5.</p>
+                        <p>Istilah Asing: Wajib italic untuk terminologi IT/PBO.</p>
+                        <p>Penulisan Gambar: Caption di bawah tengah (Gambar X. Judul).</p>
+                        <p>Halaman & Bahasa: Bahasa baku, minim typo, nomor di tengah bawah.</p>
+                        {showDetailModal.kerapihan_poin < 12 && <p className="text-[var(--red)] mt-2 font-italic">* Lihat rincian penalti di bawah</p>}
+                      </div>
+                    </details>
+                    {/* 3.3 */}
+                    <div className="flex justify-between items-start font-bold">
+                      <span>3.3 Ketepatan Pengumpulan</span>
+                      <span className="font-mono">{showDetailModal.ketepatan_poin} / 8</span>
+                    </div>
+                  </div>
+                </details>
+              </div>
+
+              {/* Format Output Final & Penalti */}
+              <div className="mt-6 border-2 border-[var(--dark)] bg-[var(--yellow)]">
+                <div className="p-3 border-b-2 border-[var(--dark)] bg-[var(--dark)] text-white font-bold flex items-center gap-2">
+                  <Brain size={16} /> OUTPUT EVALUASI AI
+                </div>
+                <div className="p-4">
+                  {/* Catatan Keseluruhan */}
+                  <div className="mb-4 bg-white p-3 border-2 border-[var(--dark)] font-mono text-sm whitespace-pre-wrap">
+                    {showDetailModal.ai_feedback?.catatan_overall || 'Data feedback tidak tersedia.'}
+                  </div>
+
+                  {/* List Penalti Dinamis */}
+                  {(() => {
+                    const aiPenalties = showDetailModal.ai_feedback?.penalti?.filter((p: any) => p.poin_dikurangi > 0) || [];
+                    const combinedPenalties = [...aiPenalties];
+                    
+                    if (showDetailModal.kehadiran_poin < 10) {
+                      combinedPenalties.unshift({
+                        komponen: '1.1 Kehadiran',
+                        poin_dikurangi: 10 - showDetailModal.kehadiran_poin,
+                        penjelasan: showDetailModal.kehadiran_poin === 0 ? 'Praktikan Alpa / Tanpa Keterangan' : 'Praktikan Sakit / Izin',
+                        lokasi: 'Sistem Absensi'
+                      });
+                    }
+
+                    if (combinedPenalties.length === 0) return null;
+
+                    return (
+                      <div className="bg-white p-3 border-2 border-[var(--dark)] border-t-4 border-t-[var(--red)]">
+                        <h4 className="font-bold text-[var(--red)] mb-2 flex items-center gap-2">
+                          <X size={16} /> RINCIAN PENALTI
+                        </h4>
+                        <div className="space-y-3">
+                          {combinedPenalties.map((p: any, idx: number) => (
+                            <div key={idx} className="text-sm border-b border-dashed pb-2 last:border-0 last:pb-0">
+                              <p className="font-bold">{p.komponen} <span className="text-[var(--red)]">(-{p.poin_dikurangi} Poin)</span></p>
+                              <p className="text-gray-700 italic">"{p.penjelasan}"</p>
+                              <p className="text-xs bg-[var(--muted)] p-1 inline-block mt-1 border border-[var(--dark)]">
+                                Lokasi: {p.lokasi}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+              </div>
+
+            </div>
+
+            {/* Footer */}
+            <div className="mt-4 pt-4 border-t-2 border-[var(--dark)] flex justify-end gap-3 flex-shrink-0">
+              <Button variant="secondary" onClick={() => setShowDetailModal(null)}>
+                Tutup
+              </Button>
+              {showDetailModal.status === 'ai_reviewed' && (
+                <Button 
+                  variant="primary-asprak" 
+                  icon={<Send size={16} />}
+                  onClick={() => {
+                    handlePublish([showDetailModal.id]);
+                    setShowDetailModal(null);
+                  }}
+                >
+                  Publish Nilai Ini
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

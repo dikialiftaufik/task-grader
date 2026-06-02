@@ -56,13 +56,13 @@ export function formatRelativeTime(date: string | Date): string {
  */
 export function getIndeksColor(indeks: IndeksHuruf | string | null): string {
   switch (indeks) {
-    case 'A': return '#00C48C';
-    case 'AB': return '#0057FF';
-    case 'B': return '#3B82F6';
-    case 'BC': return '#FFE500';
-    case 'C': return '#F59E0B';
-    case 'D': return '#FF9500';
-    case 'E': return '#FF3B3B';
+    case 'A': return '#16A34A'; // Bold Green
+    case 'AB': return '#84CC16'; // Yellow-Green
+    case 'B': return '#EAB308'; // Mustard
+    case 'BC': return '#F59E0B'; // Amber
+    case 'C': return '#F97316'; // Pure Orange
+    case 'D': return '#DC2626'; // Harsh Red
+    case 'E': return '#991B1B'; // Dark Crimson
     default: return '#999999';
   }
 }
@@ -72,13 +72,13 @@ export function getIndeksColor(indeks: IndeksHuruf | string | null): string {
  */
 export function getIndeksBgColor(indeks: IndeksHuruf | string | null): string {
   switch (indeks) {
-    case 'A': return '#E6F9F1';
-    case 'AB': return '#E6EFFF';
-    case 'B': return '#EBF3FF';
-    case 'BC': return '#FFFBE6';
-    case 'C': return '#FFF5E6';
-    case 'D': return '#FFF0E6';
-    case 'E': return '#FFE6E6';
+    case 'A': return '#DCFCE7';
+    case 'AB': return '#ECFCCB';
+    case 'B': return '#FEF9C3';
+    case 'BC': return '#FEF3C7';
+    case 'C': return '#FFEDD5';
+    case 'D': return '#FEE2E2';
+    case 'E': return '#FECACA';
     default: return '#F0F0F0';
   }
 }

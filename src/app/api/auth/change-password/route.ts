@@ -40,9 +40,9 @@ export async function POST(request: Request) {
       );
     }
 
-    // Update password via admin client
-    const admin = createAdmin();
-    const { error: updateError } = await admin.auth.admin.updateUserById(user.id, {
+    // Update password using the current user's authenticated session
+    // This ensures their session is refreshed and they remain logged in
+    const { error: updateError } = await supabase.auth.updateUser({
       password: new_password,
     });
 
@@ -53,7 +53,8 @@ export async function POST(request: Request) {
       );
     }
 
-    // Set password_changed = true
+    // Set password_changed = true via admin client
+    const admin = createAdmin();
     await admin.from('users').update({ password_changed: true }).eq('id', user.id);
 
     return NextResponse.json({ success: true });

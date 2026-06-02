@@ -1,9 +1,9 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import Groq from 'groq-sdk';
 import type { AIFeedback } from '@/types';
 import { calcKetepatanPoin } from '@/lib/scoring/rubric';
 import { GRADING_SYSTEM_PROMPT } from './prompts';
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY || '' });
 
 export interface GradingInput {
   laporanText: string;
@@ -31,8 +31,6 @@ export interface GradingResult {
 }
 
 export async function gradeSubmission(input: GradingInput): Promise<GradingResult> {
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
-
   const kehadiranPoin =
     input.kehadiranStatus === 'hadir' ? 10 : (input.kehadiranStatus === 'izin' || input.kehadiranStatus === 'sakit') ? 5 : 0;
 
@@ -56,17 +54,19 @@ ${input.sourceCode.slice(0, 8000)}
 Nilai sekarang berdasarkan rubrik. Output JSON murni saja.
 `;
 
-  const result = await model.generateContent({
-    systemInstruction: GRADING_SYSTEM_PROMPT,
-    contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
-    generationConfig: {
-      temperature: 0.2,
-      topP: 0.8,
-      maxOutputTokens: 3000,
-    },
+  const completion = await groq.chat.completions.create({
+    messages: [
+      { role: 'system', content: GRADING_SYSTEM_PROMPT },
+      { role: 'user', content: userPrompt }
+    ],
+    model: 'llama-3.3-70b-versatile',
+    temperature: 0.2,
+    top_p: 0.8,
+    max_completion_tokens: 3000,
+    response_format: { type: 'json_object' },
   });
 
-  const rawText = result.response.text();
+  const rawText = completion.choices[0]?.message?.content || '{}';
 
   let parsed: Record<string, unknown>;
   try {
