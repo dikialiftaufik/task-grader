@@ -8,10 +8,10 @@ import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Skeleton from '@/components/ui/Skeleton';
 import Dialog, { useDialog } from '@/components/ui/Dialog';
-import { Upload, Search, Download, X, Brain, FileText, Code, BookOpen, UploadCloud, Trash2, Eye, Send, CheckCircle2 } from 'lucide-react';
+import { Upload, Search, Download, X, Brain, FileText, Code, BookOpen, UploadCloud, Trash2, Eye, Send, CheckCircle2, Pencil } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useDropzone } from 'react-dropzone';
-import { calcIndeks } from '@/lib/scoring/rubric';
+import { calcIndeks, OVERRIDABLE_FIELDS, getFieldMax, getFieldLabel } from '@/lib/scoring/rubric';
 import type { Module, User, Grade } from '@/types';
 
 interface GradeRow extends Grade {
@@ -30,7 +30,15 @@ export default function KelolaNilaiPage() {
 
   // Submission modal
   const [showModal, setShowModal] = useState(false);
-  const [showDetailModal, setShowDetailModal] = useState<any>(null);
+  interface GradeDetailModal extends GradeRow {
+    indeks: ReturnType<typeof calcIndeks>;
+  }
+  const [showDetailModal, setShowDetailModal] = useState<GradeDetailModal | null>(null);
+  const [editMode, setEditMode] = useState(false);
+  const [editField, setEditField] = useState('');
+  const [editValue, setEditValue] = useState<number | ''>('');
+  const [editReason, setEditReason] = useState('');
+  const [overriding, setOverriding] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [formUserId, setFormUserId] = useState('');
   const [formModuleId, setFormModuleId] = useState('');
@@ -158,6 +166,7 @@ export default function KelolaNilaiPage() {
           const data = await res.json();
           if (data.success) {
             toast.success('Nilai berhasil dihapus');
+            closeDialog();
             loadData();
           } else {
             toast.error(data.error || 'Gagal menghapus nilai');
@@ -658,13 +667,99 @@ export default function KelolaNilaiPage() {
                   {showDetailModal.full_name} — Modul {showDetailModal.module_number}
                 </p>
               </div>
-              <button onClick={() => setShowDetailModal(null)} className="p-2 hover:bg-[var(--red)] hover:text-white border-2 border-transparent hover:border-[var(--dark)] transition-colors">
-                <X size={24} />
-              </button>
+              <div className="flex items-center gap-2">
+                <button onClick={() => setEditMode(!editMode)} className={`p-2 border-2 transition-colors ${editMode ? 'bg-[var(--dark)] text-white border-[var(--dark)]' : 'hover:bg-[var(--yellow)] border-transparent hover:border-[var(--dark)]'}`} aria-label="Edit Nilai">
+                  <Pencil size={20} />
+                </button>
+                <button onClick={() => { setShowDetailModal(null); setEditMode(false); setEditField(''); setEditReason(''); }} className="p-2 hover:bg-[var(--red)] hover:text-white border-2 border-transparent hover:border-[var(--dark)] transition-colors">
+                  <X size={24} />
+                </button>
+              </div>
             </div>
 
             {/* Content scrollable */}
             <div className="overflow-y-auto pr-2 pb-4 space-y-6">
+              
+              {editMode && (
+                <div className="p-4 bg-[var(--yellow)] border-2 border-[var(--dark)] mb-6">
+                  <h3 className="font-bold mb-3 flex items-center gap-2"><Pencil size={18}/> Override Nilai Manual</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <label className="block text-xs font-bold mb-1">Komponen Nilai</label>
+                      <select 
+                        className="neo-input w-full"
+                        value={editField}
+                        onChange={(e) => {
+                          const field = e.target.value;
+                          setEditField(field);
+                          setEditValue(field ? (showDetailModal as any)[field] ?? '' : '');
+                        }}
+                      >
+                        <option value="">-- Pilih Komponen --</option>
+                        {OVERRIDABLE_FIELDS.map(f => (
+                          <option key={f} value={f}>{getFieldLabel(f as any)} (Max: {getFieldMax(f as any)})</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold mb-1">Nilai Baru</label>
+                      <Input 
+                        type="number"
+                        min="0"
+                        max={editField ? getFieldMax(editField as any) : 100}
+                        value={editValue.toString()}
+                        onChange={(e) => setEditValue(e.target.value ? parseFloat(e.target.value) : '')}
+                        disabled={!editField}
+                        placeholder="Masukkan nilai"
+                      />
+                    </div>
+                  </div>
+                  <div className="mb-4">
+                    <label className="block text-xs font-bold mb-1">Alasan Override (wajib, min 10 karakter)</label>
+                    <textarea 
+                      className="neo-input w-full min-h-[80px]"
+                      value={editReason}
+                      onChange={(e) => setEditReason(e.target.value)}
+                      placeholder="Contoh: AI gagal mengenali fungsi X padahal sudah diimplementasikan..."
+                    />
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <Button variant="secondary" onClick={() => setEditMode(false)}>Batal</Button>
+                    <Button 
+                      variant="primary" 
+                      loading={overriding}
+                      disabled={!editField || editValue === '' || editReason.length < 10 || (typeof editValue === 'number' && editValue > getFieldMax(editField as any))}
+                      onClick={async () => {
+                        try {
+                          setOverriding(true);
+                          const res = await fetch(`/api/grade/${showDetailModal.id}`, {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ field: editField, value: editValue, reason: editReason })
+                          });
+                          const data = await res.json();
+                          if (data.success) {
+                            toast.success('Nilai berhasil di-override');
+                            loadData();
+                            setEditMode(false);
+                            setEditReason('');
+                            setEditField('');
+                            setShowDetailModal(null);
+                          } else {
+                            toast.error(data.error || 'Gagal override nilai');
+                          }
+                        } catch (err) {
+                          toast.error('Koneksi gagal');
+                        } finally {
+                          setOverriding(false);
+                        }
+                      }}
+                    >
+                      Simpan Perubahan
+                    </Button>
+                  </div>
+                </div>
+              )}
               
               {/* Top Stats */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -850,7 +945,7 @@ export default function KelolaNilaiPage() {
 
             {/* Footer */}
             <div className="mt-4 pt-4 border-t-2 border-[var(--dark)] flex justify-end gap-3 flex-shrink-0">
-              <Button variant="secondary" onClick={() => setShowDetailModal(null)}>
+              <Button variant="secondary" onClick={() => { setShowDetailModal(null); setEditMode(false); setEditField(''); setEditReason(''); }}>
                 Tutup
               </Button>
               {showDetailModal.status === 'ai_reviewed' && (

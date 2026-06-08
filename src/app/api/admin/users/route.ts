@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { createServer } from '@/lib/supabase/server';
 
 // Server-side admin client
 function getAdminClient() {
@@ -10,8 +11,27 @@ function getAdminClient() {
   );
 }
 
+async function checkAsprakAuth() {
+  const supabase = await createServer();
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) return null;
+  
+  const { data } = await supabase
+    .from('users')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+  
+  if (data?.role !== 'asprak') return null;
+  return user;
+}
+
 export async function GET() {
   try {
+    const user = await checkAsprakAuth();
+    if (!user) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+
     const adminClient = getAdminClient();
     
     // Get all praktikans
@@ -31,6 +51,9 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
+    const user = await checkAsprakAuth();
+    if (!user) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+
     const body = await req.json();
     const { full_name, username, nim } = body;
 
@@ -86,6 +109,9 @@ export async function POST(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
+    const user = await checkAsprakAuth();
+    if (!user) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
 

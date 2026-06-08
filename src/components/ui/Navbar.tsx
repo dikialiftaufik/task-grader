@@ -2,8 +2,10 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { Bell, ChevronDown, LogOut, User, Settings } from 'lucide-react';
+import { Bell, ChevronDown, LogOut, User, Settings, X } from 'lucide-react';
 import type { UserRole } from '@/types';
+import { createClient } from '@/lib/supabase/client';
+import { formatRelativeTime } from '@/lib/utils';
 
 interface NavbarProps {
   role: UserRole;
@@ -34,6 +36,8 @@ export default function Navbar({ role, userName, onLogout }: NavbarProps) {
   const router = useRouter();
   const [profileOpen, setProfileOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const profileRef = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
 
@@ -56,7 +60,42 @@ export default function Navbar({ role, userName, onLogout }: NavbarProps) {
       }
     }
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    
+    // Notifications logic
+    const supabase = createClient();
+    
+    async function fetchNotifications() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      
+      const { data } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(10);
+      
+      if (data) {
+        setNotifications(data);
+        setUnreadCount(data.filter(n => !n.is_read).length);
+      }
+    }
+    
+    fetchNotifications();
+    
+    const channel = supabase
+      .channel('notifications')
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'notifications',
+      }, () => fetchNotifications())
+      .subscribe();
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const accentColor = role === 'asprak' ? 'var(--yellow)' : 'var(--blue)';
@@ -78,29 +117,61 @@ export default function Navbar({ role, userName, onLogout }: NavbarProps) {
         {/* Notification Bell */}
         <div ref={notifRef} className="relative">
           <button
-            onClick={() => {
+            onClick={async () => {
               setNotifOpen(!notifOpen);
               setProfileOpen(false);
+              if (!notifOpen && unreadCount > 0) {
+                const supabase = createClient();
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user) {
+                  await supabase.from('notifications').update({ is_read: true }).eq('user_id', user.id).eq('is_read', false);
+                  setUnreadCount(0);
+                  setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+                }
+              }
             }}
             className="navbar-icon-btn"
             aria-label="Notifikasi"
           >
             <Bell size={20} strokeWidth={2} />
-            {/* Badge placeholder */}
-            <span className="navbar-notif-badge">0</span>
+            {unreadCount > 0 && (
+              <span className="navbar-notif-badge">{unreadCount}</span>
+            )}
           </button>
 
           {notifOpen && (
             <div className="navbar-dropdown" style={{ width: '320px', right: 0 }}>
-              <div className="p-4 border-b-2 border-[var(--dark)]">
+              <div className="p-4 border-b-2 border-[var(--dark)] flex justify-between items-center">
                 <p className="text-sm font-bold" style={{ fontFamily: 'var(--font-display)' }}>
                   Notifikasi
                 </p>
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setNotifOpen(false);
+                  }}
+                  className="text-[var(--muted-text)] hover:text-[var(--dark)] transition-colors"
+                  aria-label="Tutup notifikasi"
+                >
+                  <X size={16} strokeWidth={2.5} />
+                </button>
               </div>
-              <div className="p-6 text-center">
-                <p className="text-xs" style={{ color: 'var(--muted-text)' }}>
-                  Belum ada notifikasi baru.
-                </p>
+              <div className="max-h-[300px] overflow-y-auto">
+                {notifications.length > 0 ? (
+                  notifications.map((notif) => (
+                    <div key={notif.id} className="p-4 border-b border-[var(--muted)] hover:bg-[var(--muted)] transition-colors">
+                      <p className="text-sm font-bold mb-1" style={{ fontFamily: 'var(--font-display)' }}>{notif.title}</p>
+                      <p className="text-xs mb-2" style={{ color: 'var(--muted-text)' }}>{notif.body}</p>
+                      <p className="text-[10px] text-right font-bold" style={{ color: 'var(--blue)' }}>{formatRelativeTime(notif.created_at)}</p>
+                    </div>
+                  ))
+                ) : (
+                  <div className="p-6 text-center">
+                    <p className="text-xs" style={{ color: 'var(--muted-text)' }}>
+                      Belum ada notifikasi baru.
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           )}

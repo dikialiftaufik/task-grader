@@ -8,13 +8,13 @@ import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import { Eye, X, Brain, Flag } from 'lucide-react';
 import { calcIndeks } from '@/lib/scoring/rubric';
-import type { Grade, Module } from '@/types';
+import type { Grade, Module, IndeksHuruf } from '@/types';
 
 export default function NilaiSayaPage() {
   const router = useRouter();
   const [grades, setGrades] = useState<(Grade & { module: Module })[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showDetailModal, setShowDetailModal] = useState<any>(null);
+  const [showDetailModal, setShowDetailModal] = useState<(Grade & { module: Module; indeks: IndeksHuruf }) | null>(null);
 
   useEffect(() => {
     loadGrades();
