@@ -144,6 +144,31 @@ export default function KelolaNilaiPage() {
     setPublishing(false);
   }
 
+  async function handleDelete(gradeId: string, fullName: string) {
+    showDialog({
+      title: 'Hapus Nilai',
+      message: `Apakah Anda yakin ingin menghapus nilai untuk praktikan ${fullName}? Tindakan ini tidak dapat dibatalkan.`,
+      type: 'danger',
+      confirmText: 'Hapus',
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`/api/grade/${gradeId}`, {
+            method: 'DELETE',
+          });
+          const data = await res.json();
+          if (data.success) {
+            toast.success('Nilai berhasil dihapus');
+            loadData();
+          } else {
+            toast.error(data.error || 'Gagal menghapus nilai');
+          }
+        } catch {
+          toast.error('Koneksi gagal');
+        }
+      }
+    });
+  }
+
   async function handleSubmit() {
     if (!formUserId || !formModuleId || !formLaporan) {
       toast.error('Praktikan, modul, dan laporan PDF wajib diisi');
@@ -364,6 +389,13 @@ export default function KelolaNilaiPage() {
                           onClick={() => setShowDetailModal(g)}
                         >
                           <Eye size={16} />
+                        </button>
+                        <button 
+                          className="p-1.5 hover:bg-[var(--red)] hover:text-white border-2 border-transparent hover:border-[var(--dark)] transition-all rounded text-[var(--red)]"
+                          title="Hapus Nilai"
+                          onClick={() => handleDelete(g.id, g.full_name)}
+                        >
+                          <Trash2 size={16} />
                         </button>
                         {g.status === 'ai_reviewed' && (
                           <button 
