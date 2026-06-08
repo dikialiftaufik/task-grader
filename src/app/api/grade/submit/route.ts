@@ -48,6 +48,23 @@ export async function POST(request: Request) {
 
     const admin = createAdmin();
 
+    // Rate Limiting (PERF-03)
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+    const { data: recentSubmission } = await admin
+      .from('submissions')
+      .select('updated_at')
+      .eq('user_id', userId)
+      .eq('module_id', moduleId)
+      .gte('updated_at', fiveMinutesAgo)
+      .single();
+    
+    if (recentSubmission) {
+      return NextResponse.json(
+        { success: false, error: 'Submission untuk praktikan ini baru saja diproses. Tunggu 5 menit sebelum submit ulang.' },
+        { status: 429 }
+      );
+    }
+
     // 1. Upload files to Supabase Storage
     const prefix = `${userId}/modul-${moduleId}`;
     let laporanPath = '';

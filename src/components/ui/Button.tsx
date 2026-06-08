@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
 
-type ButtonVariant = 'primary-asprak' | 'primary-praktikan' | 'secondary' | 'danger' | 'ghost';
+type ButtonVariant = 'primary-asprak' | 'primary-praktikan' | 'secondary' | 'danger' | 'ghost' | 'success';
 type ButtonSize = 'sm' | 'md' | 'lg';
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -21,6 +21,7 @@ const variantStyles: Record<ButtonVariant, string> = {
   'primary-praktikan': 'bg-[var(--blue)] text-[var(--white)]',
   secondary: 'bg-[var(--white)] text-[var(--dark)]',
   danger: 'bg-[var(--red)] text-[var(--white)]',
+  success: 'bg-[var(--green)] text-[var(--white)]',
   ghost: 'bg-transparent text-[var(--dark)] border-transparent shadow-none hover:bg-[var(--muted)]',
 };
 

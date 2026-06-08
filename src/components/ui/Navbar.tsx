@@ -72,6 +72,7 @@ export default function Navbar({ role, userName, onLogout }: NavbarProps) {
         .from('notifications')
         .select('*')
         .eq('user_id', user.id)
+        .eq('is_read', false)
         .order('created_at', { ascending: false })
         .limit(10);
       
@@ -126,7 +127,7 @@ export default function Navbar({ role, userName, onLogout }: NavbarProps) {
                 if (user) {
                   await supabase.from('notifications').update({ is_read: true }).eq('user_id', user.id).eq('is_read', false);
                   setUnreadCount(0);
-                  setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+                  setNotifications([]);
                 }
               }
             }}

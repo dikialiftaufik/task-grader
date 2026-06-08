@@ -57,6 +57,7 @@ export function getAttendancePoin(status: AttendanceStatus): number {
     case 'hadir': return 10;
     case 'izin': return 5;
     case 'alpa': return 0;
+    default: return 0;
   }
 }
 

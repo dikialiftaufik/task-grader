@@ -9,12 +9,14 @@ interface CardProps {
   accentPosition?: 'top' | 'left';
   shadow?: boolean;
   hover?: boolean;
-  padding?: 'sm' | 'md' | 'lg';
+  padding?: 'none' | 'sm' | 'md' | 'lg';
   className?: string;
+  style?: React.CSSProperties;
   onClick?: () => void;
 }
 
 const paddingStyles = {
+  none: 'p-0',
   sm: 'p-4',
   md: 'p-6',
   lg: 'p-8',
@@ -28,6 +30,7 @@ export default function Card({
   hover = false,
   padding = 'md',
   className,
+  style,
   onClick,
 }: CardProps) {
   return (
@@ -40,14 +43,15 @@ export default function Card({
         onClick && 'cursor-pointer',
         className
       )}
-      style={
-        accentColor
+      style={{
+        ...style,
+        ...(accentColor
           ? {
               [`border${accentPosition === 'top' ? 'Top' : 'Left'}Width`]: '6px',
               [`border${accentPosition === 'top' ? 'Top' : 'Left'}Color`]: accentColor,
             }
-          : undefined
-      }
+          : {}),
+      }}
       onClick={onClick}
     >
       {children}

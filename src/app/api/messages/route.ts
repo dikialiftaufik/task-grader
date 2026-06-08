@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { data: userData } = await supabase.from('users').select('role').eq('id', user.id).single();
+    const { data: userData } = await supabase.from('users').select('role, full_name').eq('id', user.id).single();
     const isAsprak = userData?.role === 'asprak';
 
     const formData = await request.formData();

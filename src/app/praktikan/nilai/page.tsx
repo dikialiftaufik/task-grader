@@ -14,7 +14,7 @@ export default function NilaiSayaPage() {
   const router = useRouter();
   const [grades, setGrades] = useState<(Grade & { module: Module })[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showDetailModal, setShowDetailModal] = useState<(Grade & { module: Module; indeks: IndeksHuruf }) | null>(null);
+  const [showDetailModal, setShowDetailModal] = useState<(Grade & { module: Module; indeks: IndeksHuruf | null }) | null>(null);
 
   useEffect(() => {
     loadGrades();
@@ -91,7 +91,22 @@ export default function NilaiSayaPage() {
               </tr>
             </thead>
             <tbody>
-              {grades.length > 0 ? (
+              {loading ? (
+                Array.from({ length: 3 }).map((_, i) => (
+                  <tr key={i} className="animate-pulse">
+                    <td>
+                      <div className="h-5 bg-gray-200 rounded w-20 mb-2"></div>
+                      <div className="h-3 bg-gray-200 rounded w-32"></div>
+                    </td>
+                    <td><div className="h-4 bg-gray-200 rounded w-8"></div></td>
+                    <td><div className="h-4 bg-gray-200 rounded w-8"></div></td>
+                    <td><div className="h-4 bg-gray-200 rounded w-8"></div></td>
+                    <td><div className="h-6 bg-gray-200 rounded w-10"></div></td>
+                    <td><div className="h-6 bg-gray-200 rounded w-8"></div></td>
+                    <td><div className="h-8 bg-gray-200 rounded w-24"></div></td>
+                  </tr>
+                ))
+              ) : grades.length > 0 ? (
                 grades.map((g) => (
                   <tr key={g.id}>
                     <td>

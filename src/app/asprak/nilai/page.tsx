@@ -11,6 +11,7 @@ import Dialog, { useDialog } from '@/components/ui/Dialog';
 import { Upload, Search, Download, X, Brain, FileText, Code, BookOpen, UploadCloud, Trash2, Eye, Send, CheckCircle2, Pencil } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useDropzone } from 'react-dropzone';
+import * as XLSX from 'xlsx';
 import { calcIndeks, OVERRIDABLE_FIELDS, getFieldMax, getFieldLabel } from '@/lib/scoring/rubric';
 import type { Module, User, Grade } from '@/types';
 
@@ -28,12 +29,14 @@ export default function KelolaNilaiPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
 
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const ITEMS_PER_PAGE = 20;
+
   // Submission modal
   const [showModal, setShowModal] = useState(false);
-  interface GradeDetailModal extends GradeRow {
-    indeks: ReturnType<typeof calcIndeks>;
-  }
-  const [showDetailModal, setShowDetailModal] = useState<GradeDetailModal | null>(null);
+  const [showDetailModal, setShowDetailModal] = useState<GradeRow | null>(null);
   const [editMode, setEditMode] = useState(false);
   const [editField, setEditField] = useState('');
   const [editValue, setEditValue] = useState<number | ''>('');
@@ -60,7 +63,7 @@ export default function KelolaNilaiPage() {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [currentPage, selectedModule, searchQuery]);
 
   // Fetch attendance automatically when user or module changes
   useEffect(() => {
@@ -90,6 +93,7 @@ export default function KelolaNilaiPage() {
   }, [formUserId, formModuleId]);
 
   async function loadData() {
+    setLoading(true);
     const supabase = createClient();
 
     const { data: modulesData } = await supabase
@@ -105,10 +109,34 @@ export default function KelolaNilaiPage() {
       .order('full_name');
     setPraktikans((usersData as User[]) || []);
 
-    const { data: gradesData } = await supabase
+    let query = supabase
       .from('grades')
-      .select('*, users!grades_user_id_fkey!inner(full_name, nim), modules!inner(number)')
+      .select('*, users!grades_user_id_fkey!inner(full_name, nim), modules!inner(number)', { count: 'exact' })
       .order('module_id');
+
+    if (selectedModule) {
+      query = query.eq('module_id', selectedModule);
+    }
+
+    if (searchQuery && usersData) {
+      const q = searchQuery.toLowerCase();
+      const matchingUserIds = (usersData as User[])
+        .filter(p => p.full_name.toLowerCase().includes(q) || p.nim?.includes(q))
+        .map(p => p.id);
+        
+      if (matchingUserIds.length === 0) {
+        setGrades([]);
+        setTotalCount(0);
+        setLoading(false);
+        return;
+      }
+      query = query.in('user_id', matchingUserIds);
+    }
+
+    const { data: gradesData, count } = await query.range(
+      (currentPage - 1) * ITEMS_PER_PAGE,
+      currentPage * ITEMS_PER_PAGE - 1
+    );
 
     if (gradesData) {
       setGrades(
@@ -124,6 +152,7 @@ export default function KelolaNilaiPage() {
           } as GradeRow;
         })
       );
+      if (count !== null) setTotalCount(count);
     }
 
     setLoading(false);
@@ -156,7 +185,7 @@ export default function KelolaNilaiPage() {
     showDialog({
       title: 'Hapus Nilai',
       message: `Apakah Anda yakin ingin menghapus nilai untuk praktikan ${fullName}? Tindakan ini tidak dapat dibatalkan.`,
-      type: 'danger',
+      variant: 'error',
       confirmText: 'Hapus',
       onConfirm: async () => {
         try {
@@ -261,14 +290,43 @@ export default function KelolaNilaiPage() {
     setFormModulAcuan(null);
   }
 
-  const filteredGrades = grades.filter((g) => {
-    if (selectedModule && g.module_id !== selectedModule) return false;
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      return g.full_name.toLowerCase().includes(q) || g.nim.includes(q);
-    }
-    return true;
-  });
+  function handleExport() {
+    const exportData = grades.map(g => ({
+      'NIM': g.nim,
+      'Nama': g.full_name,
+      'Modul': `Modul ${g.module_number}`,
+      'Komp.1 /30': g.komponen1_total,
+      'Komp.2 /30': g.komponen2_total,
+      'Komp.3 /40': g.komponen3_total,
+      'Total': g.nilai_final,
+      'Indeks': g.indeks || '-',
+      'AI Confidence': g.ai_confidence ? g.ai_confidence.toUpperCase() : '-',
+      'Status': g.status
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    
+    // Set column widths
+    const wscols = [
+      {wch: 15}, // NIM
+      {wch: 30}, // Nama
+      {wch: 10}, // Modul
+      {wch: 12}, // Komp.1
+      {wch: 12}, // Komp.2
+      {wch: 12}, // Komp.3
+      {wch: 8},  // Total
+      {wch: 8},  // Indeks
+      {wch: 15}, // AI Confidence
+      {wch: 15}  // Status
+    ];
+    worksheet['!cols'] = wscols;
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Nilai TaskGrader");
+    
+    const date = new Date().toISOString().split('T')[0];
+    XLSX.writeFile(workbook, `nilai-taskgrader-${date}.xlsx`);
+  }
 
   // --- Dropzone setups ---
   const onDropLaporan = useCallback((acceptedFiles: File[]) => {
@@ -329,6 +387,15 @@ export default function KelolaNilaiPage() {
           <Button variant="primary-asprak" icon={<Upload size={16} />} onClick={() => setShowModal(true)}>
             Input Submission
           </Button>
+          <Button 
+            variant="secondary" 
+            icon={<Download size={16} />} 
+            onClick={handleExport}
+            disabled={grades.length === 0}
+            title="Export data yang sedang ditampilkan ke Excel"
+          >
+            Export Excel
+          </Button>
         </div>
       </div>
 
@@ -355,7 +422,10 @@ export default function KelolaNilaiPage() {
               style={{ paddingLeft: '40px' }}
               placeholder="Cari NIM atau nama..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setCurrentPage(1);
+              }}
             />
           </div>
         </div>
@@ -378,8 +448,21 @@ export default function KelolaNilaiPage() {
               </tr>
             </thead>
             <tbody>
-              {filteredGrades.length > 0 ? (
-                filteredGrades.map((g) => (
+              {loading ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <tr key={i} className="animate-pulse">
+                    <td><div className="h-4 bg-gray-200 rounded w-16"></div></td>
+                    <td><div className="h-4 bg-gray-200 rounded w-32"></div></td>
+                    <td><div className="h-4 bg-gray-200 rounded w-20"></div></td>
+                    <td><div className="h-4 bg-gray-200 rounded w-12"></div></td>
+                    <td><div className="h-6 bg-gray-200 rounded w-10"></div></td>
+                    <td><div className="h-6 bg-gray-200 rounded w-16"></div></td>
+                    <td><div className="h-6 bg-gray-200 rounded w-24"></div></td>
+                    <td><div className="h-8 bg-gray-200 rounded w-24"></div></td>
+                  </tr>
+                ))
+              ) : grades.length > 0 ? (
+                grades.map((g) => (
                   <tr key={g.id}>
                     <td className="font-mono text-sm">{g.nim}</td>
                     <td>{g.full_name}</td>
@@ -387,7 +470,7 @@ export default function KelolaNilaiPage() {
                     <td className="font-bold" style={{ fontFamily: 'var(--font-display)' }}>
                       {g.nilai_final}
                     </td>
-                    <td><Badge variant="indeks" value={g.indeks} /></td>
+                    <td><Badge variant="indeks" value={g.indeks || '-'} /></td>
                     <td><Badge variant="confidence" value={g.ai_confidence?.toUpperCase() || '-'} /></td>
                     <td><Badge variant="status" value={g.status} /></td>
                     <td>
@@ -432,6 +515,33 @@ export default function KelolaNilaiPage() {
           </table>
         </div>
       </Card>
+
+      {/* Pagination UI */}
+      {totalCount > 0 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6 text-sm">
+          <p className="text-[var(--muted-text)]">
+            Menampilkan <span className="font-bold text-[var(--dark)]">{(currentPage - 1) * ITEMS_PER_PAGE + 1}</span>-
+            <span className="font-bold text-[var(--dark)]">{Math.min(currentPage * ITEMS_PER_PAGE, totalCount)}</span> dari <span className="font-bold text-[var(--dark)]">{totalCount}</span> hasil
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              className="px-3 py-1 neo-pill bg-[var(--white)] text-[var(--dark)] hover:bg-[var(--yellow)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+            >
+              Previous
+            </button>
+            <span className="px-3 py-1 font-bold" style={{ fontFamily: 'var(--font-display)' }}>{currentPage}</span>
+            <button
+              className="px-3 py-1 neo-pill bg-[var(--white)] text-[var(--dark)] hover:bg-[var(--yellow)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={() => setCurrentPage(prev => prev + 1)}
+              disabled={currentPage * ITEMS_PER_PAGE >= totalCount}
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ━━━━ Submission Modal ━━━━ */}
       {showModal && (
@@ -726,7 +836,7 @@ export default function KelolaNilaiPage() {
                   <div className="flex justify-end gap-2">
                     <Button variant="secondary" onClick={() => setEditMode(false)}>Batal</Button>
                     <Button 
-                      variant="primary" 
+                      variant="primary-asprak" 
                       loading={overriding}
                       disabled={!editField || editValue === '' || editReason.length < 10 || (typeof editValue === 'number' && editValue > getFieldMax(editField as any))}
                       onClick={async () => {

@@ -4,6 +4,9 @@ import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import Card from '@/components/ui/Card';
 import Skeleton from '@/components/ui/Skeleton';
+import Button from '@/components/ui/Button';
+import { Download } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import { getAttendanceColor, getAttendanceLabel } from '@/lib/utils';
 import type { Module, User, Attendance } from '@/types';
 
@@ -65,6 +68,34 @@ export default function AbsensiPage() {
     return attendance.find((a) => a.user_id === userId && a.module_id === moduleId);
   }
 
+  function handleExport() {
+    const exportData = praktikans.map((p) => {
+      const rowData: any = {
+        'NIM': p.nim,
+        'Nama': p.full_name
+      };
+      
+      const displayModules = selectedModule ? modules.filter((m) => m.id === selectedModule) : modules;
+      
+      let totalHadir = 0;
+      displayModules.forEach(m => {
+        const status = getStatus(p.id, m.id)?.status || 'alpa';
+        rowData[`M${m.number}`] = status;
+        if (status === 'hadir') totalHadir++;
+      });
+      
+      rowData['Total Hadir'] = totalHadir;
+      return rowData;
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Absensi TaskGrader");
+    
+    const date = new Date().toISOString().split('T')[0];
+    XLSX.writeFile(workbook, `absensi-taskgrader-${date}.xlsx`);
+  }
+
   if (loading) {
     return <Skeleton height={400} />;
   }
@@ -90,6 +121,17 @@ export default function AbsensiPage() {
             Modul {m.number}
           </button>
         ))}
+      </div>
+
+      <div className="flex justify-end mb-4">
+        <Button 
+          variant="secondary" 
+          icon={<Download size={16} />} 
+          onClick={handleExport}
+          disabled={praktikans.length === 0}
+        >
+          Export Excel
+        </Button>
       </div>
 
       {/* Attendance Table */}
