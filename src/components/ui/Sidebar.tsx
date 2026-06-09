@@ -38,7 +38,6 @@ const praktikanLinks = [
   { href: '/praktikan/kehadiran', label: 'Kehadiran', icon: CalendarCheck },
   { href: '/praktikan/kriteria', label: 'Rubrik', icon: FileCheck },
   { href: '/praktikan/keberatan', label: 'Keberatan', icon: Flag },
-  { href: '/praktikan/diskusi', label: 'Diskusi', icon: MessageSquare },
 ];
 
 export default function Sidebar({ role }: SidebarProps) {

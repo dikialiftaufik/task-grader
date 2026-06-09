@@ -49,7 +49,12 @@ function KeberatanContent() {
       .eq('status', 'final')
       .order('module_id');
 
-    if (gradesData) setGrades(gradesData as any);
+    if (gradesData) {
+      setGrades(gradesData.map((g: any) => ({
+        ...g,
+        module: g.modules
+      })));
+    }
 
     // Load disputes
     const res = await fetch('/api/dispute');
@@ -285,8 +290,6 @@ function KeberatanContent() {
             </h3>
             <ul className="space-y-3 text-sm">
               {[
-                'Pastikan nilai sudah FINAL (bukan draft)',
-                'Batas waktu keberatan: 3×24 jam setelah nilai dipublish',
                 'Sertakan bukti pendukung (wajib minimal 1 file)',
                 'Alasan harus spesifik dan dapat diverifikasi',
                 'Asprak akan merespons dalam 2×24 jam',

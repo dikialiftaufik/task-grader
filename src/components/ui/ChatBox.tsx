@@ -24,8 +24,11 @@ export default function ChatBox({ praktikanId, disputeId }: { praktikanId?: stri
         table: 'messages',
         filter: praktikanId ? `praktikan_id=eq.${praktikanId}` : undefined
       }, (payload) => {
-        setMessages(prev => [...prev, payload.new]);
-        scrollToBottom();
+        setMessages(prev => {
+          if (prev.find(m => m.id === payload.new.id)) return prev;
+          return [...prev, payload.new];
+        });
+        setTimeout(scrollToBottom, 100);
       })
       .subscribe();
 
@@ -76,9 +79,11 @@ export default function ChatBox({ praktikanId, disputeId }: { praktikanId?: stri
       const data = await res.json();
       if (data.success) {
         setContent('');
-        // We let realtime handle adding the message, but if no realtime, we'd add it manually here
-        // setMessages(prev => [...prev, data.data]);
-        scrollToBottom();
+        setMessages(prev => {
+          if (prev.find(m => m.id === data.data.id)) return prev;
+          return [...prev, data.data];
+        });
+        setTimeout(scrollToBottom, 100);
       } else {
         toast.error(data.error || 'Gagal mengirim pesan');
       }

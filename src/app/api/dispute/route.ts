@@ -75,17 +75,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Nilai tidak valid atau belum dipublish' }, { status: 400 });
     }
 
-    // 3 days validation
-    if (grade.published_at) {
-      const pubDate = new Date(grade.published_at);
-      const now = new Date();
-      const diffMs = now.getTime() - pubDate.getTime();
-      const diffDays = diffMs / (1000 * 60 * 60 * 24);
-      
-      if (diffDays > 3) {
-        return NextResponse.json({ error: 'Batas waktu pengajuan keberatan (3x24 jam) telah habis' }, { status: 400 });
-      }
-    }
+
 
     // Upload files if any
     const bukti_paths: string[] = [];

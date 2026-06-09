@@ -105,6 +105,7 @@ export default function PraktikanDashboard() {
   const hadirCount = attendance.filter((a) => a.status === 'hadir').length;
   const totalModules = modules.length;
   const attendancePercent = totalModules ? Math.round((hadirCount / totalModules) * 100) : 0;
+  const gradedPercent = totalModules ? Math.round((grades.length / totalModules) * 100) : 0;
 
   // Chart data
   const chartData = grades.map((g) => ({
@@ -139,24 +140,7 @@ export default function PraktikanDashboard() {
 
       {/* Stat Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <Card accentColor="var(--blue)" padding="md">
-          <div className="flex items-center gap-2 mb-3">
-            <Star size={18} style={{ color: 'var(--blue)' }} />
-            <span className="text-xs font-semibold uppercase" style={{ fontFamily: 'var(--font-display)' }}>
-              Nilai Saat Ini
-            </span>
-          </div>
-          <div className="flex items-end gap-3">
-            <p className="text-5xl font-bold" style={{ fontFamily: 'var(--font-display)' }}>
-              {avgScore || '-'}
-            </p>
-            <span className="text-lg mb-1" style={{ color: 'var(--muted-text)' }}>/ 100</span>
-          </div>
-          {overallIndeks !== '-' && (
-            <Badge variant="indeks" value={overallIndeks} className="mt-2" />
-          )}
-        </Card>
-
+        {/* 1. Kehadiran */}
         <Card accentColor="var(--green)" padding="md">
           <div className="flex items-center gap-2 mb-3">
             <Calendar size={18} style={{ color: 'var(--green)' }} />
@@ -170,18 +154,19 @@ export default function PraktikanDashboard() {
           <p className="text-xs mt-2" style={{ color: 'var(--muted-text)' }}>
             {attendancePercent}% hadir
           </p>
-          {/* Progress bar */}
-          <div className="mt-2 h-2 border-2 border-[var(--dark)]">
+          {/* Progress bar kehadiran (Hijau) */}
+          <div className="mt-2 h-2 border-2 border-[var(--green)] bg-white overflow-hidden">
             <div
               className="h-full"
               style={{
                 width: `${attendancePercent}%`,
-                background: attendancePercent >= 75 ? 'var(--green)' : 'var(--red)',
+                background: 'var(--green)',
               }}
             />
           </div>
         </Card>
 
+        {/* 2. Modul Dinilai */}
         <Card accentColor="var(--yellow)" padding="md">
           <div className="flex items-center gap-2 mb-3">
             <CheckCircle size={18} style={{ color: 'var(--yellow)' }} />
@@ -192,20 +177,56 @@ export default function PraktikanDashboard() {
           <p className="text-5xl font-bold" style={{ fontFamily: 'var(--font-display)' }}>
             {grades.length}/{totalModules}
           </p>
+          <p className="text-xs mt-2" style={{ color: 'var(--muted-text)' }}>
+            {gradedPercent}% dinilai
+          </p>
+          {/* Progress bar modul dinilai (Kuning) */}
+          <div className="mt-2 h-2 border-2 border-[var(--yellow)] bg-white overflow-hidden">
+            <div
+              className="h-full"
+              style={{
+                width: `${gradedPercent}%`,
+                background: 'var(--yellow)',
+              }}
+            />
+          </div>
         </Card>
 
+        {/* 3. Nilai Rata-rata */}
+        <Card accentColor="var(--blue)" padding="md">
+          <div className="flex items-center gap-2 mb-3">
+            <Star size={18} style={{ color: 'var(--blue)' }} />
+            <span className="text-xs font-semibold uppercase" style={{ fontFamily: 'var(--font-display)' }}>
+              Nilai Rata-rata
+            </span>
+          </div>
+          <div className="flex items-end gap-3 mt-4">
+            <p className="text-5xl font-bold" style={{ fontFamily: 'var(--font-display)' }}>
+              {avgScore || '-'}
+            </p>
+            <span className="text-lg mb-1" style={{ color: 'var(--muted-text)' }}>/ 100</span>
+          </div>
+        </Card>
+
+        {/* 4. Grade Nilai Akhir */}
         <Card accentColor="var(--dark)" padding="md">
           <div className="flex items-center gap-2 mb-3">
             <TrendingUp size={18} />
             <span className="text-xs font-semibold uppercase" style={{ fontFamily: 'var(--font-display)' }}>
-              Perkiraan Akhir
+              Grade Nilai Akhir
             </span>
           </div>
-          <p className="text-5xl font-bold" style={{ fontFamily: 'var(--font-display)' }}>
-            {avgScore || '-'}
-          </p>
-          <p className="text-xs mt-2 italic" style={{ color: 'var(--muted-text)' }}>
-            Berdasarkan modul yang sudah dinilai
+          <div className="mt-2 flex items-center justify-start">
+            {overallIndeks !== '-' ? (
+              <Badge variant="indeks" value={overallIndeks} className="text-4xl px-6 py-4" />
+            ) : (
+              <p className="text-5xl font-bold" style={{ fontFamily: 'var(--font-display)' }}>
+                -
+              </p>
+            )}
+          </div>
+          <p className="text-xs mt-4 italic" style={{ color: 'var(--muted-text)' }}>
+            Berdasarkan nilai rata-rata saat ini
           </p>
         </Card>
       </div>
