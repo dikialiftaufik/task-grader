@@ -83,16 +83,7 @@ export default function KehadiranPage() {
         </div>
       </Card>
 
-      {/* Warning if below 75% */}
-      {modules.length > 0 && hadirCount / modules.length < 0.75 && (
-        <div
-          className="p-4 mb-6 text-sm"
-          style={{ background: '#FFE6E6', border: 'var(--border)', borderLeftWidth: '6px', borderLeftColor: 'var(--red)' }}
-        >
-          ⚠️ Kehadiran Anda di bawah 75%. Hal ini dapat mempengaruhi nilai akhir.
-          Hubungi asprak jika ada keterangan izin yang belum tercatat.
-        </div>
-      )}
+
 
       {/* Detail Table */}
       <Card padding="sm">

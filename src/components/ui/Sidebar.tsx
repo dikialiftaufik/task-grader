@@ -26,8 +26,9 @@ const asprakLinks = [
   { href: '/asprak/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/asprak/nilai', label: 'Penilaian AI', icon: Brain },
   { href: '/asprak/absensi', label: 'Kehadiran', icon: CalendarCheck },
-  { href: '/asprak/praktikan', label: 'Praktikan', icon: Users },
+  { href: '/asprak/keberatan', label: 'Keberatan', icon: Flag },
   { href: '/asprak/diskusi', label: 'Diskusi', icon: MessageSquare },
+  { href: '/asprak/praktikan', label: 'Praktikan', icon: Users },
   { href: '/asprak/kriteria', label: 'Rubrik', icon: FileCheck },
   { href: '/asprak/pengaturan', label: 'Pengaturan', icon: Settings },
 ];

@@ -55,9 +55,8 @@ export default function NilaiSayaPage() {
       {/* Summary Card */}
       {grades.length > 0 && (
         <Card
-          className="mb-8 bg-[var(--yellow)]"
+          className="mb-8 bg-white text-[var(--dark)]"
           padding="lg"
-          accentColor="var(--yellow)"
         >
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>

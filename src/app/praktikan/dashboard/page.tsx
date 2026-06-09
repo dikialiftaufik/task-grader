@@ -218,16 +218,15 @@ export default function PraktikanDashboard() {
           </div>
           <div className="mt-2 flex items-center justify-start">
             {overallIndeks !== '-' ? (
-              <Badge variant="indeks" value={overallIndeks} className="text-4xl px-6 py-4" />
+              <p className="text-5xl font-bold" style={{ fontFamily: 'var(--font-display)', color: 'var(--blue)' }}>
+                {overallIndeks}
+              </p>
             ) : (
               <p className="text-5xl font-bold" style={{ fontFamily: 'var(--font-display)' }}>
                 -
               </p>
             )}
           </div>
-          <p className="text-xs mt-4 italic" style={{ color: 'var(--muted-text)' }}>
-            Berdasarkan nilai rata-rata saat ini
-          </p>
         </Card>
       </div>
 
