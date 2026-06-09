@@ -104,34 +104,36 @@ export default function AbsensiPage() {
     <div>
       <h1 className="section-title section-title-asprak mb-6">MANAJEMEN ABSENSI</h1>
 
-      {/* Module selector pills */}
-      <div className="flex flex-wrap gap-2 mb-6">
-        <button
-          className={`neo-pill cursor-pointer ${!selectedModule ? 'bg-[var(--yellow)] text-[var(--dark)]' : 'bg-[var(--white)] text-[var(--dark)]'}`}
-          onClick={() => setSelectedModule(null)}
-        >
-          Semua
-        </button>
-        {modules.map((m) => (
+      {/* Top Bar: Module selector pills & Export */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <div className="flex flex-wrap gap-2">
           <button
-            key={m.id}
-            className={`neo-pill cursor-pointer ${selectedModule === m.id ? 'bg-[var(--yellow)] text-[var(--dark)]' : 'bg-[var(--white)] text-[var(--dark)]'}`}
-            onClick={() => setSelectedModule(m.id)}
+            className={`neo-pill cursor-pointer ${!selectedModule ? 'bg-[var(--yellow)] text-[var(--dark)]' : 'bg-[var(--white)] text-[var(--dark)]'}`}
+            onClick={() => setSelectedModule(null)}
           >
-            Modul {m.number}
+            Semua
           </button>
-        ))}
-      </div>
+          {modules.map((m) => (
+            <button
+              key={m.id}
+              className={`neo-pill cursor-pointer ${selectedModule === m.id ? 'bg-[var(--yellow)] text-[var(--dark)]' : 'bg-[var(--white)] text-[var(--dark)]'}`}
+              onClick={() => setSelectedModule(m.id)}
+            >
+              Modul {m.number}
+            </button>
+          ))}
+        </div>
 
-      <div className="flex justify-end mb-4">
-        <Button 
-          variant="secondary" 
-          icon={<Download size={16} />} 
-          onClick={handleExport}
-          disabled={praktikans.length === 0}
-        >
-          Export Excel
-        </Button>
+        <div className="flex-shrink-0">
+          <Button 
+            variant="secondary" 
+            icon={<Download size={16} />} 
+            onClick={handleExport}
+            disabled={praktikans.length === 0}
+          >
+            Export Excel
+          </Button>
+        </div>
       </div>
 
       {/* Attendance Table */}

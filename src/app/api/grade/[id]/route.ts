@@ -37,18 +37,8 @@ export async function PATCH(
     const { data: currentGrade, error: fetchErr } = await admin.from('grades').select('*').eq('id', gradeId).single();
     if (fetchErr || !currentGrade) return NextResponse.json({ error: 'Nilai tidak ditemukan' }, { status: 404 });
     
-    const updatedGrade = { ...currentGrade, [field]: value };
-    const komponen1_total = calcKomponen1(updatedGrade.kehadiran_poin, updatedGrade.percobaan_poin);
-    const komponen2_total = calcKomponen2(updatedGrade.fungsionalitas_poin, updatedGrade.sintaks_poin, updatedGrade.kualitas_poin);
-    const komponen3_total = calcKomponen3(updatedGrade.kelengkapan_poin, updatedGrade.kerapihan_poin, updatedGrade.ketepatan_poin);
-    const nilai_final = calcNilaiFinal(updatedGrade);
-    
     const { error: updateErr } = await admin.from('grades').update({
-      [field]: value,
-      komponen1_total,
-      komponen2_total,
-      komponen3_total,
-      nilai_final
+      [field]: value
     }).eq('id', gradeId);
     
     if (updateErr) throw updateErr;

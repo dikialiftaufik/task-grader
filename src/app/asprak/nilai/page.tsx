@@ -15,6 +15,23 @@ import * as XLSX from 'xlsx';
 import { calcIndeks, OVERRIDABLE_FIELDS, getFieldMax, getFieldLabel } from '@/lib/scoring/rubric';
 import type { Module, User, Grade } from '@/types';
 
+const highlightText = (text: string, highlight: string) => {
+  if (!highlight || !highlight.trim()) return <span>{text}</span>;
+  const regex = new RegExp(`(${highlight})`, 'gi');
+  const parts = text.split(regex);
+  return (
+    <span>
+      {parts.map((part, i) =>
+        regex.test(part) ? (
+          <mark key={i} className="bg-[var(--yellow)] text-[var(--dark)] rounded px-0.5 font-bold">{part}</mark>
+        ) : (
+          <span key={i}>{part}</span>
+        )
+      )}
+    </span>
+  );
+};
+
 interface GradeRow extends Grade {
   full_name: string;
   nim: string;
@@ -32,7 +49,8 @@ export default function KelolaNilaiPage() {
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
-  const ITEMS_PER_PAGE = 20;
+  const [itemsPerPage, setItemsPerPage] = useState(20);
+  const [searchInput, setSearchInput] = useState('');
 
   // Submission modal
   const [showModal, setShowModal] = useState(false);
@@ -46,7 +64,7 @@ export default function KelolaNilaiPage() {
   const [formUserId, setFormUserId] = useState('');
   const [formModuleId, setFormModuleId] = useState('');
   const [formDelay, setFormDelay] = useState('0');
-  
+
   // Dynamic Attendance
   const [fetchedAttendance, setFetchedAttendance] = useState<'hadir' | 'izin' | 'sakit' | 'alpa' | null>(null);
   const [loadingAttendance, setLoadingAttendance] = useState(false);
@@ -63,7 +81,16 @@ export default function KelolaNilaiPage() {
 
   useEffect(() => {
     loadData();
-  }, [currentPage, selectedModule, searchQuery]);
+  }, [currentPage, selectedModule, searchQuery, itemsPerPage]);
+
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearchQuery(searchInput);
+      setCurrentPage(1);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
   // Fetch attendance automatically when user or module changes
   useEffect(() => {
@@ -80,7 +107,7 @@ export default function KelolaNilaiPage() {
         .eq('user_id', formUserId)
         .eq('module_id', formModuleId)
         .single();
-      
+
       if (data) {
         setFetchedAttendance(data.status as any);
       } else {
@@ -88,7 +115,7 @@ export default function KelolaNilaiPage() {
       }
       setLoadingAttendance(false);
     }
-    
+
     checkAttendance();
   }, [formUserId, formModuleId]);
 
@@ -123,7 +150,7 @@ export default function KelolaNilaiPage() {
       const matchingUserIds = (usersData as User[])
         .filter(p => p.full_name.toLowerCase().includes(q) || p.nim?.includes(q))
         .map(p => p.id);
-        
+
       if (matchingUserIds.length === 0) {
         setGrades([]);
         setTotalCount(0);
@@ -134,8 +161,8 @@ export default function KelolaNilaiPage() {
     }
 
     const { data: gradesData, count } = await query.range(
-      (currentPage - 1) * ITEMS_PER_PAGE,
-      currentPage * ITEMS_PER_PAGE - 1
+      (currentPage - 1) * itemsPerPage,
+      currentPage * itemsPerPage - 1
     );
 
     if (gradesData) {
@@ -160,7 +187,7 @@ export default function KelolaNilaiPage() {
 
   async function handlePublish(gradeIds: string[]) {
     if (gradeIds.length === 0) return;
-    
+
     setPublishing(true);
     try {
       const res = await fetch('/api/grade/publish', {
@@ -305,25 +332,25 @@ export default function KelolaNilaiPage() {
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(exportData);
-    
+
     // Set column widths
     const wscols = [
-      {wch: 15}, // NIM
-      {wch: 30}, // Nama
-      {wch: 10}, // Modul
-      {wch: 12}, // Komp.1
-      {wch: 12}, // Komp.2
-      {wch: 12}, // Komp.3
-      {wch: 8},  // Total
-      {wch: 8},  // Indeks
-      {wch: 15}, // AI Confidence
-      {wch: 15}  // Status
+      { wch: 15 }, // NIM
+      { wch: 30 }, // Nama
+      { wch: 10 }, // Modul
+      { wch: 12 }, // Komp.1
+      { wch: 12 }, // Komp.2
+      { wch: 12 }, // Komp.3
+      { wch: 8 },  // Total
+      { wch: 8 },  // Indeks
+      { wch: 15 }, // AI Confidence
+      { wch: 15 }  // Status
     ];
     worksheet['!cols'] = wscols;
 
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Nilai TaskGrader");
-    
+
     const date = new Date().toISOString().split('T')[0];
     XLSX.writeFile(workbook, `nilai-taskgrader-${date}.xlsx`);
   }
@@ -355,7 +382,7 @@ export default function KelolaNilaiPage() {
   };
 
 
-  if (loading) {
+  if (loading && modules.length === 0) {
     return (
       <div>
         <Skeleton height={40} width={300} />
@@ -375,9 +402,9 @@ export default function KelolaNilaiPage() {
         </div>
         <div className="flex gap-3">
           {grades.some(g => g.status === 'ai_reviewed') && (
-            <Button 
-              variant="secondary" 
-              icon={<Send size={16} />} 
+            <Button
+              variant="secondary"
+              icon={<Send size={16} />}
               onClick={() => handlePublish(grades.filter(g => g.status === 'ai_reviewed').map(g => g.id))}
               loading={publishing}
             >
@@ -387,9 +414,9 @@ export default function KelolaNilaiPage() {
           <Button variant="primary-asprak" icon={<Upload size={16} />} onClick={() => setShowModal(true)}>
             Input Submission
           </Button>
-          <Button 
-            variant="secondary" 
-            icon={<Download size={16} />} 
+          <Button
+            variant="secondary"
+            icon={<Download size={16} />}
             onClick={handleExport}
             disabled={grades.length === 0}
             title="Export data yang sedang ditampilkan ke Excel"
@@ -401,11 +428,36 @@ export default function KelolaNilaiPage() {
 
       {/* Filter bar */}
       <Card className="mb-6 bg-[var(--muted)]" padding="sm" shadow={false}>
-        <div className="flex flex-wrap gap-4 items-center">
+        <div className="grid grid-cols-1 md:grid-cols-[1fr_11fr_8fr] gap-4 items-center w-full">
           <select
-            className="neo-input w-auto"
+            className="neo-input w-full px-1 text-center cursor-pointer"
+            value={itemsPerPage}
+            onChange={(e) => { setItemsPerPage(parseInt(e.target.value)); setCurrentPage(1); }}
+            title="Jumlah baris per halaman"
+          >
+            <option value={5}>5</option>
+            <option value={10}>10</option>
+            <option value={15}>15</option>
+            <option value={20}>20</option>
+            <option value={50}>50</option>
+            <option value={100}>100</option>
+          </select>
+
+          <div className="relative w-full">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted-text)]" />
+            <input
+              className="neo-input w-full"
+              style={{ paddingLeft: '40px' }}
+              placeholder="Cari NIM atau nama praktikan..."
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+            />
+          </div>
+
+          <select
+            className="neo-input w-full cursor-pointer"
             value={selectedModule || ''}
-            onChange={(e) => setSelectedModule(e.target.value ? parseInt(e.target.value) : null)}
+            onChange={(e) => { setSelectedModule(e.target.value ? parseInt(e.target.value) : null); setCurrentPage(1); }}
           >
             <option value="">Semua Modul</option>
             {modules.map((m) => (
@@ -414,20 +466,6 @@ export default function KelolaNilaiPage() {
               </option>
             ))}
           </select>
-
-          <div className="relative flex-1 min-w-[200px]">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted-text)]" />
-            <input
-              className="neo-input"
-              style={{ paddingLeft: '40px' }}
-              placeholder="Cari NIM atau nama..."
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                setCurrentPage(1);
-              }}
-            />
-          </div>
         </div>
       </Card>
 
@@ -464,8 +502,8 @@ export default function KelolaNilaiPage() {
               ) : grades.length > 0 ? (
                 grades.map((g) => (
                   <tr key={g.id}>
-                    <td className="font-mono text-sm">{g.nim}</td>
-                    <td>{g.full_name}</td>
+                    <td className="font-mono text-sm">{highlightText(g.nim, searchQuery)}</td>
+                    <td>{highlightText(g.full_name, searchQuery)}</td>
                     <td className="font-bold">Modul {g.module_number}</td>
                     <td className="font-bold" style={{ fontFamily: 'var(--font-display)' }}>
                       {g.nilai_final}
@@ -475,14 +513,14 @@ export default function KelolaNilaiPage() {
                     <td><Badge variant="status" value={g.status} /></td>
                     <td>
                       <div className="flex gap-2">
-                        <button 
+                        <button
                           className="p-1.5 hover:bg-[var(--muted)] border-2 border-transparent hover:border-[var(--dark)] transition-all rounded"
                           title="Lihat Detail"
                           onClick={() => setShowDetailModal(g)}
                         >
                           <Eye size={16} />
                         </button>
-                        <button 
+                        <button
                           className="p-1.5 hover:bg-[var(--red)] hover:text-white border-2 border-transparent hover:border-[var(--dark)] transition-all rounded text-[var(--red)]"
                           title="Hapus Nilai"
                           onClick={() => handleDelete(g.id, g.full_name)}
@@ -490,7 +528,7 @@ export default function KelolaNilaiPage() {
                           <Trash2 size={16} />
                         </button>
                         {g.status === 'ai_reviewed' && (
-                          <button 
+                          <button
                             className="p-1.5 hover:bg-[var(--green)] hover:text-white border-2 border-transparent hover:border-[var(--dark)] transition-all rounded text-[var(--green)]"
                             title="Publish Nilai"
                             onClick={() => handlePublish([g.id])}
@@ -520,8 +558,7 @@ export default function KelolaNilaiPage() {
       {totalCount > 0 && (
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6 text-sm">
           <p className="text-[var(--muted-text)]">
-            Menampilkan <span className="font-bold text-[var(--dark)]">{(currentPage - 1) * ITEMS_PER_PAGE + 1}</span>-
-            <span className="font-bold text-[var(--dark)]">{Math.min(currentPage * ITEMS_PER_PAGE, totalCount)}</span> dari <span className="font-bold text-[var(--dark)]">{totalCount}</span> hasil
+            Menampilkan <span className="font-bold text-[var(--dark)]">{grades.length}</span> dari <span className="font-bold text-[var(--dark)]">{totalCount}</span> hasil
           </p>
           <div className="flex items-center gap-2">
             <button
@@ -535,7 +572,7 @@ export default function KelolaNilaiPage() {
             <button
               className="px-3 py-1 neo-pill bg-[var(--white)] text-[var(--dark)] hover:bg-[var(--yellow)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={() => setCurrentPage(prev => prev + 1)}
-              disabled={currentPage * ITEMS_PER_PAGE >= totalCount}
+              disabled={currentPage * itemsPerPage >= totalCount}
             >
               Next
             </button>
@@ -625,13 +662,12 @@ export default function KelolaNilaiPage() {
                     {loadingAttendance ? (
                       <span className="text-sm text-[var(--muted-text)] font-medium animate-pulse">Mengecek data...</span>
                     ) : fetchedAttendance ? (
-                      <span className={`text-sm font-bold uppercase ${
-                        fetchedAttendance === 'hadir' ? 'text-[var(--green)]' : 
+                      <span className={`text-sm font-bold uppercase ${fetchedAttendance === 'hadir' ? 'text-[var(--green)]' :
                         fetchedAttendance === 'alpa' ? 'text-[var(--red)]' : 'text-[var(--orange)]'
-                      }`}>
-                        {fetchedAttendance === 'hadir' ? '✓ Hadir' : 
-                         fetchedAttendance === 'izin' ? 'I - Izin' : 
-                         fetchedAttendance === 'sakit' ? 'S - Sakit' : '✗ Alpa'}
+                        }`}>
+                        {fetchedAttendance === 'hadir' ? '✓ Hadir' :
+                          fetchedAttendance === 'izin' ? 'I - Izin' :
+                            fetchedAttendance === 'sakit' ? 'S - Sakit' : '✗ Alpa'}
                       </span>
                     ) : (
                       <span className="text-sm text-[var(--muted-text)] font-medium">-- Pilih praktikan & modul --</span>
@@ -789,14 +825,14 @@ export default function KelolaNilaiPage() {
 
             {/* Content scrollable */}
             <div className="overflow-y-auto pr-2 pb-4 space-y-6">
-              
+
               {editMode && (
                 <div className="p-4 bg-[var(--yellow)] border-2 border-[var(--dark)] mb-6">
-                  <h3 className="font-bold mb-3 flex items-center gap-2"><Pencil size={18}/> Override Nilai Manual</h3>
+                  <h3 className="font-bold mb-3 flex items-center gap-2"><Pencil size={18} /> Override Nilai Manual</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div>
                       <label className="block text-xs font-bold mb-1">Komponen Nilai</label>
-                      <select 
+                      <select
                         className="neo-input w-full"
                         value={editField}
                         onChange={(e) => {
@@ -813,7 +849,7 @@ export default function KelolaNilaiPage() {
                     </div>
                     <div>
                       <label className="block text-xs font-bold mb-1">Nilai Baru</label>
-                      <Input 
+                      <Input
                         type="number"
                         min="0"
                         max={editField ? getFieldMax(editField as any) : 100}
@@ -826,7 +862,7 @@ export default function KelolaNilaiPage() {
                   </div>
                   <div className="mb-4">
                     <label className="block text-xs font-bold mb-1">Alasan Override (wajib, min 10 karakter)</label>
-                    <textarea 
+                    <textarea
                       className="neo-input w-full min-h-[80px]"
                       value={editReason}
                       onChange={(e) => setEditReason(e.target.value)}
@@ -835,8 +871,8 @@ export default function KelolaNilaiPage() {
                   </div>
                   <div className="flex justify-end gap-2">
                     <Button variant="secondary" onClick={() => setEditMode(false)}>Batal</Button>
-                    <Button 
-                      variant="primary-asprak" 
+                    <Button
+                      variant="primary-asprak"
                       loading={overriding}
                       disabled={!editField || editValue === '' || editReason.length < 10 || (typeof editValue === 'number' && editValue > getFieldMax(editField as any))}
                       onClick={async () => {
@@ -870,7 +906,7 @@ export default function KelolaNilaiPage() {
                   </div>
                 </div>
               )}
-              
+
               {/* Top Stats */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="p-4 bg-[var(--muted)] border-2 border-[var(--dark)]">
@@ -894,7 +930,7 @@ export default function KelolaNilaiPage() {
               {/* Rincian Komponen Detail Baru */}
               <div className="space-y-4">
                 <h3 className="text-sm font-bold uppercase border-b-2 border-[var(--dark)] pb-2" style={{ fontFamily: 'var(--font-display)' }}>Rincian Komponen Penilaian</h3>
-                
+
                 {/* KOMPONEN 1 */}
                 <details className="group border-2 border-[var(--dark)] rounded-none bg-white">
                   <summary className="font-bold p-3 bg-[var(--muted)] cursor-pointer select-none flex justify-between items-center group-open:border-b-2 group-open:border-[var(--dark)]">
@@ -1017,7 +1053,7 @@ export default function KelolaNilaiPage() {
                   {(() => {
                     const aiPenalties = showDetailModal.ai_feedback?.penalti?.filter((p: any) => p.poin_dikurangi > 0) || [];
                     const combinedPenalties = [...aiPenalties];
-                    
+
                     if (showDetailModal.kehadiran_poin < 10) {
                       combinedPenalties.unshift({
                         komponen: '1.1 Kehadiran',
@@ -1059,8 +1095,8 @@ export default function KelolaNilaiPage() {
                 Tutup
               </Button>
               {showDetailModal.status === 'ai_reviewed' && (
-                <Button 
-                  variant="primary-asprak" 
+                <Button
+                  variant="primary-asprak"
                   icon={<Send size={16} />}
                   onClick={() => {
                     handlePublish([showDetailModal.id]);
